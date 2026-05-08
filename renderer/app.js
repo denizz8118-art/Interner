@@ -24,6 +24,10 @@ const userDeleteModal = document.getElementById("userDeleteModal");
 const cancelUserDelete = document.getElementById("cancelUserDelete");
 const confirmUserDelete = document.getElementById("confirmUserDelete");
 const userDeleteConfirmCheck = document.getElementById("userDeleteConfirmCheck");
+const requestCloseModal = document.getElementById("requestCloseModal");
+const cancelRequestClose = document.getElementById("cancelRequestClose");
+const confirmRequestClose = document.getElementById("confirmRequestClose");
+const requestCloseConfirmCheck = document.getElementById("requestCloseConfirmCheck");
 const sidebarUserAvatar = document.getElementById("sidebarUserAvatar");
 
 let currentUser = null;
@@ -34,13 +38,14 @@ let users = [];
 let activeTaskFilter = "Devam Eden";
 let activeUsersRoleFilter = "ALL";
 let activeUsersPage = 1;
-const USERS_PER_PAGE = 5;
+const USERS_PER_PAGE = 8;
 const LAST_ACTIVE_VIEW_KEY = "lastActiveView";
 let selectedDeleteUserId = "";
 let selectedEditUserId = "";
 let selectedEditRole = "STAJYER";
 let selectedEditStartHour = 9;
 let selectedEditEndHour = 18;
+let selectedCloseRequestId = "";
 
 const ROLE_ORDER = ["STAJYER", "LEADER", "ADMIN", "MANAGER"];
 const ROLE_LABEL_MAP = { MANAGER: "MUDUR", LEADER: "LIDER", ADMIN: "ADMIN", STAJYER: "STAJYER" };
@@ -123,6 +128,25 @@ function businessDaysBetween(startDate) {
   return Math.max(count, 0);
 }
 
+function normalizeTaskStatusLabel(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "basarisiz" || normalized === "başarısız") return "Başarısız";
+  if (normalized === "ara verilen") return "Ara Verilen";
+  if (normalized === "iptal edilen") return "İptal Edilen";
+  if (normalized === "tamamlanan") return "Tamamlanan";
+  return "Devam Eden";
+}
+
+function sortRequestsQueuedFirst(list) {
+  const queued = [];
+  const rest = [];
+  for (const item of list) {
+    if (item?.status === "Bekletildi") queued.push(item);
+    else rest.push(item);
+  }
+  return [...queued, ...rest];
+}
+
 async function loadData() {
   [users, requests, tasks, messages] = await Promise.all([
     window.api.listUsers(),
@@ -180,7 +204,8 @@ async function renderRequests() {
     list.innerHTML = '<div class="requests-v2-empty">Size atanan bir gorev yada talep bulunmuyor</div>';
     return;
   }
-  list.innerHTML = requests
+  const sortedRequests = sortRequestsQueuedFirst(requests);
+  list.innerHTML = sortedRequests
     .map((req) => {
       const owner = findUserBySender(req.senderId, req.sender);
       const senderName = req.sender || getUserFullName(owner);
@@ -188,27 +213,50 @@ async function renderRequests() {
         ? `<img src="${owner.profilFoto}" alt="${senderName}" style="width:100%;height:100%;object-fit:cover;border-radius:999px;" />`
         : getUserInitials(owner || { ad_soyad: senderName });
       const queued = req.status === "Bekletildi";
-      const dueText = req.dueDate ? `Son Tarih: ${req.dueDate}` : "Son tarih yok";
+      const remainingDaysRaw = req.dueDate ? daysLeft(req.dueDate) : null;
+      const hasFiniteDue = Number.isFinite(remainingDaysRaw);
+      const remainingDays = hasFiniteDue ? remainingDaysRaw : null;
+      const dueText = hasFiniteDue ? `${remainingDays} Gün Kaldı` : req.dueDate ? `Son Tarih: ${req.dueDate}` : "Son tarih yok";
       const priorityClass =
-        req.priority === "Kritik" ? "kritik" : req.priority === "Onemli" ? "onemli" : req.priority === "Orta" ? "orta" : "dusuk";
+        req.priority === "Kritik"
+          ? "kritik"
+          : req.priority === "Önemli" || req.priority === "Onemli"
+            ? "onemli"
+            : req.priority === "Orta"
+              ? "orta"
+              : "dusuk";
+      const priorityLabel = queued ? "Sıraya Alındı" : req.priority || "Düşük";
+      const deadlineClass = remainingDays !== null && remainingDays <= 3 ? "danger" : remainingDays !== null && remainingDays <= 6 ? "warning" : "";
+      const metaClass = deadlineClass || (req.dueDate ? (priorityClass === "kritik" ? "danger" : priorityClass === "onemli" ? "warning" : "") : "");
+      const requestToneClass =
+        deadlineClass === "danger"
+          ? "due-danger"
+          : deadlineClass === "warning"
+            ? "due-warning"
+            : `priority-${priorityClass}`;
       return `
-      <article class="request-card requests-v2-card ${queued ? "queued" : ""}">
+      <article class="request-card requests-v2-card ${queued ? "queued" : ""} ${requestToneClass}">
         <div class="requests-v2-top">
           <div class="requests-v2-person">
             <div class="requests-v2-avatar">${avatar}</div>
             <div><h4>${senderName}</h4><p>${req.department || "-"}</p></div>
           </div>
           <div class="requests-v2-top-right">
-            <span class="requests-v2-priority ${priorityClass}">${queued ? "Siraya Alindi" : req.priority || "Dusuk"}</span>
-            ${queued ? '<span class="requests-v2-queued-check">âœ“</span>' : ""}
+            <span class="requests-v2-priority ${priorityClass}">${priorityLabel}</span>
+            ${queued ? '<span class="requests-v2-queued-check-circle">✓</span>' : ""}
           </div>
         </div>
-        <h3 style="margin:0;cursor:pointer" data-action="open" data-id="${req.id}">${req.title || "-"}</h3>
+        <h3 class="requests-v2-task-title" data-action="open" data-id="${req.id}">${req.title || "-"}</h3>
         <p class="requests-v2-desc">${req.description || "-"}</p>
-        <div class="requests-v2-meta">${queued ? "â—· Isleme alinmayi bekliyor" : `â—· ${dueText}`}</div>
+        <div class="requests-v2-meta ${metaClass}">
+          <span class="requests-v2-meta-icon">${queued ? "◴" : "◷"}</span>
+          <span>${queued ? "İşleme alınmayı bekliyor" : dueText}</span>
+        </div>
         <div class="request-actions">
-          <button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">${queued ? "Simdi Baslat" : "Kabul Et"}</button>
-          <button class="btn-ghost requests-v2-btn" data-action="hold" data-id="${req.id}">${queued ? "âœ Duzenle" : "âŠ Siraya Al"}</button>
+          <button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">${queued ? "Şimdi Başlat" : "Kabul Et"}</button>
+          <button class="btn-ghost requests-v2-btn" data-action="hold" data-id="${req.id}">
+            ${queued ? '<span class="requests-v2-btn-icon">✕</span>Talebi Kapat' : '<span class="requests-v2-btn-icon">⊞</span>Sıraya Al'}
+          </button>
         </div>
       </article>`;
     })
@@ -234,30 +282,96 @@ async function renderRequests() {
       return;
     }
     if (actionEl.dataset.action === "hold") {
-      req.status = "Bekletildi";
-      requests = [req, ...requests.filter((r) => r.id !== req.id)];
-      await window.api.saveRequests(requests);
-      renderRequests();
+      if (req.status === "Bekletildi") {
+        openRequestCloseModal(req);
+      } else {
+        req.status = "Bekletildi";
+        requests = sortRequestsQueuedFirst([req, ...requests.filter((r) => r.id !== req.id)]);
+        await window.api.saveRequests(requests);
+        renderRequests();
+      }
     }
   };
+}
+
+function openRequestCloseModal(request) {
+  if (!requestCloseModal || !confirmRequestClose || !requestCloseConfirmCheck) return;
+  selectedCloseRequestId = String(request.id || "");
+  const owner = findUserBySender(request.senderId, request.sender);
+  const ownerName = request.sender || getUserFullName(owner) || "-";
+  const ownerDept = request.department || owner?.departman || "-";
+  const ownerTitle = request.senderTitle || owner?.sirketUnvan || owner?.rol || "-";
+  const avatarEl = document.getElementById("requestCloseAvatar");
+  const nameEl = document.getElementById("requestCloseName");
+  const deptEl = document.getElementById("requestCloseDept");
+  const titleEl = document.getElementById("requestCloseTitle");
+  const descEl = document.getElementById("requestCloseDescription");
+  if (avatarEl) {
+    avatarEl.innerHTML = owner?.profilFoto ? `<img src="${owner.profilFoto}" alt="${ownerName}" />` : getUserInitials(owner || { ad_soyad: ownerName });
+  }
+  if (nameEl) nameEl.textContent = ownerName;
+  if (deptEl) deptEl.textContent = ownerDept;
+  if (titleEl) titleEl.textContent = ownerTitle;
+  if (descEl) descEl.textContent = `${ownerName} adlı kişinin talebini kapatmak istiyor musunuz? Bildirim gider.`;
+  requestCloseConfirmCheck.checked = false;
+  confirmRequestClose.disabled = true;
+  requestCloseModal.classList.remove("hidden");
+}
+
+function closeRequestCloseModalFn() {
+  if (!requestCloseModal || !confirmRequestClose || !requestCloseConfirmCheck) return;
+  requestCloseModal.classList.add("hidden");
+  requestCloseConfirmCheck.checked = false;
+  confirmRequestClose.disabled = true;
+  selectedCloseRequestId = "";
+}
+
+async function handleRequestCloseConfirm() {
+  if (!selectedCloseRequestId) return;
+  requests = requests.filter((r) => String(r.id || "") !== selectedCloseRequestId);
+  requests = sortRequestsQueuedFirst(requests);
+  await window.api.saveRequests(requests);
+  closeRequestCloseModalFn();
+  renderRequests();
 }
 
 function buildTaskCard(task) {
   const left = daysLeft(task.dueDate);
   const business = businessDaysBetween(task.acceptedAt || new Date().toISOString());
+  const statusLabel = normalizeTaskStatusLabel(task.status);
+  const priorityClass =
+    task.priority === "Kritik"
+      ? "kritik"
+      : task.priority === "Önemli" || task.priority === "Onemli"
+        ? "onemli"
+        : task.priority === "Orta"
+          ? "orta"
+          : "dusuk";
+  const deadlineText = left === null ? "Belirli deadline yok" : `${left} Gün Kaldı`;
+  const deadlineClass = left !== null && left <= 3 ? "danger" : left !== null && left <= 6 ? "warning" : "";
+  const cardToneClass =
+    deadlineClass === "danger"
+      ? "due-danger"
+      : deadlineClass === "warning"
+        ? "due-warning"
+        : `priority-${priorityClass}`;
   return `
-  <article class="task-card tasks-v2-card" data-task-id="${task.taskId}">
+  <article class="task-card tasks-v2-card ${cardToneClass}" data-task-id="${task.taskId}">
     <div class="tasks-v2-card-top">
-      <div class="tasks-v2-card-top-left"><h3>${task.title || "-"}</h3><p>${task.description || "-"}</p></div>
-      <div class="tasks-v2-state-wrap"><span class="tasks-v2-state">${task.status || "Devam Eden"}</span></div>
+      <div class="tasks-v2-card-top-left">
+        <span class="tasks-v2-priority-pill ${priorityClass}">${task.priority || "Düşük"}</span>
+        <h3>${task.title || "-"}</h3>
+        <p>${task.description || "-"}</p>
+      </div>
+      <div class="tasks-v2-state-wrap"><span class="tasks-v2-state">${statusLabel}</span></div>
     </div>
     <div class="tasks-v2-sep"></div>
-    <div class="tasks-v2-meta"><span>Is Gunu: <strong>${business}</strong></span>${left !== null ? `<span>${left} gun kaldi</span>` : ""}</div>
-    <div class="tasks-v2-actions">
-      <button class="btn-ghost" data-action="pause" data-id="${task.taskId}">Ara Ver</button>
-      <button class="btn-ghost" data-action="complete" data-id="${task.taskId}">Tamamla</button>
-      <button class="btn-ghost" data-action="fail" data-id="${task.taskId}">Basarisiz</button>
-      ${task.dueDate ? `<button class="btn-ghost" data-action="postpone" data-id="${task.taskId}">Erteleme Talep Et</button>` : ""}
+    <div class="tasks-v2-deadline-row">
+      <span class="tasks-v2-deadline ${deadlineClass}">${left !== null ? "⏰ " : ""}${deadlineText}</span>
+    </div>
+    <div class="tasks-v2-bottom-row">
+      <span class="tasks-v2-workday">İş Günü: <strong>${business} Gün</strong></span>
+      <button class="btn-ghost tasks-v2-detail-btn" data-action="open-detail" data-id="${task.taskId}">Görev Detayını İncele</button>
     </div>
   </article>`;
 }
@@ -267,7 +381,7 @@ async function renderTasks() {
   const count = document.getElementById("taskCount");
   const tabs = document.getElementById("taskTabs");
   if (!list || !count || !tabs) return;
-  const filtered = tasks.filter((t) => t.status === activeTaskFilter);
+  const filtered = tasks.filter((t) => normalizeTaskStatusLabel(t.status) === activeTaskFilter);
   count.textContent = String(filtered.length);
   list.innerHTML = filtered.map(buildTaskCard).join("") || '<div class="card">Bu filtrede gorev yok.</div>';
 
@@ -286,9 +400,13 @@ async function renderTasks() {
       const task = tasks.find((t) => t.taskId === actionBtn.dataset.id);
       if (!task) return;
       const action = actionBtn.dataset.action;
+      if (action === "open-detail") {
+        openTaskDetailModal(task);
+        return;
+      }
       if (action === "pause") task.status = "Ara Verilen";
       if (action === "complete") task.status = "Tamamlanan";
-      if (action === "fail") task.status = "Basarisiz";
+      if (action === "fail") task.status = "Başarısız";
       if (action === "postpone") task.postponementReason = window.prompt("Erteleme sebebi:") || "";
       await window.api.saveTasks(tasks);
       renderTasks();
@@ -329,13 +447,28 @@ function openTaskDetailModal(task) {
       : getUserInitials(owner || { ad_soyad: ownerName });
   }
   const left = daysLeft(task.dueDate);
-  setText("taskDetailDueTag", left === null ? "â—· Son Teslim Tarihi: Belirtilmedi" : `â—· ${left} gun kaldi`);
-  setText("taskDetailPriorityTag", `! Oncelik: ${task.priority || "-"}`);
+  setText("taskDetailDueTag", left === null ? "• Son Teslim Tarihi: Belirtilmedi" : `• ${left} gün kaldı`);
+  setText("taskDetailPriorityTag", `! Öncelik: ${task.priority || "-"}`);
   setText("taskDetailTitle", task.title || "-");
   setText("taskDetailDescription", task.description || "-");
   setText("taskDetailManagerName", ownerName);
   setText("taskDetailManagerRole", task.senderTitle || owner?.sirketUnvan || owner?.rol || "-");
   setText("taskDetailManagerDept", task.department || owner?.departman || "-");
+
+  const dueTagEl = document.getElementById("taskDetailDueTag");
+  const priorityTagEl = document.getElementById("taskDetailPriorityTag");
+  if (dueTagEl) {
+    dueTagEl.classList.remove("task-detail-tag-warning", "task-detail-tag-danger", "task-detail-tag-mid");
+    if (left !== null && left <= 3) dueTagEl.classList.add("task-detail-tag-danger");
+    else if (left !== null && left <= 6) dueTagEl.classList.add("task-detail-tag-warning");
+  }
+  if (priorityTagEl) {
+    priorityTagEl.classList.remove("task-detail-tag-warning", "task-detail-tag-danger", "task-detail-tag-mid");
+    const p = String(task.priority || "").toLowerCase();
+    if (p === "kritik") priorityTagEl.classList.add("task-detail-tag-danger");
+    else if (p === "önemli" || p === "onemli") priorityTagEl.classList.add("task-detail-tag-warning");
+    else if (p === "orta") priorityTagEl.classList.add("task-detail-tag-mid");
+  }
 
   const actions = taskDetailModal.querySelector(".task-detail-actions");
   if (actions) {
@@ -343,7 +476,7 @@ function openTaskDetailModal(task) {
     const startBtn = actions.querySelector(".task-detail-btn-primary");
     if (postpone) postpone.style.display = task.dueDate ? "" : "none";
     if (startBtn) {
-      startBtn.innerHTML = 'Goreve Basla <span>â–·</span>';
+      startBtn.innerHTML = 'Göreve Başla <span>▷</span>';
       startBtn.onclick = () => openTaskWorkspace(task);
     }
   }
@@ -404,7 +537,7 @@ function renderUsers() {
           <td>${user.email || "-"}</td>
           <td>${user.departman || "-"}</td>
           <td><span class="users-v2-role ${roleClassMap[role] || "stajyer"}">${getRoleLabel(role)}</span></td>
-          <td><div class="users-v2-actions"><button class="users-v2-icon-btn" data-action="mail" data-user-id="${user.id}">âœ‰</button><button class="users-v2-icon-btn" data-action="edit" data-user-id="${user.id}">âœ</button><button class="users-v2-icon-btn delete" data-action="delete" data-user-id="${user.id}">ğŸ—‘</button></div></td>
+          <td><div class="users-v2-actions"><button class="users-v2-icon-btn" data-action="mail" data-user-id="${user.id}">✉</button><button class="users-v2-icon-btn" data-action="edit" data-user-id="${user.id}">✎</button><button class="users-v2-icon-btn delete" data-action="delete" data-user-id="${user.id}">🗑</button></div></td>
         </tr>`;
       })
       .join("") || '<tr><td colspan="5" class="users-v2-empty">Kullanici bulunamadi.</td></tr>';
@@ -413,9 +546,9 @@ function renderUsers() {
   const shownEnd = Math.min(start + USERS_PER_PAGE, total);
   rangeEl.textContent = `${total} kullanicidan ${shownStart}-${shownEnd} arasi gosteriliyor`;
   paginationEl.innerHTML = `
-    <button class="users-v2-page-btn nav" data-page="${Math.max(1, activeUsersPage - 1)}">â€¹</button>
+    <button class="users-v2-page-btn nav" data-page="${Math.max(1, activeUsersPage - 1)}">‹</button>
     ${Array.from({ length: totalPages }, (_, i) => `<button class="users-v2-page-btn ${i + 1 === activeUsersPage ? "active" : ""}" data-page="${i + 1}">${i + 1}</button>`).join("")}
-    <button class="users-v2-page-btn nav" data-page="${Math.min(totalPages, activeUsersPage + 1)}">â€º</button>
+    <button class="users-v2-page-btn nav" data-page="${Math.min(totalPages, activeUsersPage + 1)}">›</button>
   `;
 
   tabs.onclick = (event) => {
@@ -621,22 +754,45 @@ async function handleCreateUser(event) {
     userCreateError.textContent = "Sifreler eslesmiyor.";
     return;
   }
+  const normalizedEmail = email.toLowerCase();
+  const emailExists = users.some((u) => String(u?.email || "").toLowerCase() === normalizedEmail);
+  if (emailExists) {
+    userCreateError.textContent = "Bu e-posta zaten kayıtlı.";
+    return;
+  }
   const newUser = {
     id: String(Date.now()),
     ad_soyad: fullName,
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     sifre: password,
     rol: role,
     departman: department,
     sirketUnvan: ROLE_TITLE_MAP[role] || role,
     telefon: "***"
   };
-  const result = await window.api.addUser(newUser);
-  if (!result?.ok) {
-    userCreateError.textContent = result?.error || "Kullanici kaydedilemedi.";
+  try {
+    const latestUsers = await window.api.listUsers();
+    const duplicateInFile = latestUsers.some((u) => String(u?.email || "").toLowerCase() === normalizedEmail);
+    if (duplicateInFile) {
+      userCreateError.textContent = "Bu e-posta zaten kayıtlı.";
+      return;
+    }
+    const saveResult = await window.api.saveUsers([...latestUsers, newUser]);
+    if (!saveResult?.ok) {
+      userCreateError.textContent = saveResult?.error || "Kullanıcı kaydedilemedi.";
+      return;
+    }
+  } catch (error) {
+    userCreateError.textContent = error?.message || "Kullanıcı kaydı sırasında bağlantı hatası oluştu.";
     return;
   }
-  users.unshift(newUser);
+
+  users = (await window.api.listUsers()).map(normalizeUser);
+  const persisted = users.some((u) => String(u?.email || "").toLowerCase() === normalizedEmail);
+  if (!persisted) {
+    userCreateError.textContent = "Kullanıcı kaydı doğrulanamadı.";
+    return;
+  }
   activeUsersRoleFilter = "ALL";
   activeUsersPage = 1;
   closeUserCreateModalFn();
@@ -665,6 +821,11 @@ function renderProfile() {
   const aboutEditBtn = document.getElementById("profileAboutEditBtn");
   const imageModal = document.getElementById("profileImageModal");
   const imageModalImg = document.getElementById("profileImageModalImg");
+  const cropModal = document.getElementById("profileCropModal");
+  const cropStage = document.getElementById("profileCropStage");
+  const cropImage = document.getElementById("profileCropImage");
+  const cancelCropBtn = document.getElementById("cancelProfileCrop");
+  const applyCropBtn = document.getElementById("applyProfileCrop");
   const aboutKey = `profileAbout:${String(currentUser.id || "")}`;
   const savedAbout = String(localStorage.getItem(aboutKey) || "").trim();
   const fallbackAbout =
@@ -704,6 +865,40 @@ function renderProfile() {
   const syncUserSave = async () => {
     users = users.map((u) => (isSameUser(u, currentUser) ? normalizeUser({ ...u, ...currentUser }) : normalizeUser(u)));
     await persistUsersOrThrow(users);
+    users = (await window.api.listUsers()).map(normalizeUser);
+    const latest = users.find((u) => isSameUser(u, currentUser));
+    if (latest) {
+      currentUser = normalizeUser(latest);
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+    }
+  };
+
+  let cropState = {
+    source: "",
+    scale: 1,
+    x: 0,
+    y: 0,
+    dragging: false,
+    startX: 0,
+    startY: 0
+  };
+
+  const applyCropTransform = () => {
+    if (!cropImage) return;
+    cropImage.style.transform = `translate(calc(-50% + ${cropState.x}px), calc(-50% + ${cropState.y}px)) scale(${cropState.scale})`;
+  };
+
+  const openCropModal = (src) => {
+    if (!cropModal || !cropImage) return;
+    cropState = { source: src, scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0 };
+    cropImage.src = src;
+    cropImage.onload = () => applyCropTransform();
+    cropModal.classList.remove("hidden");
+  };
+
+  const closeCropModal = () => {
+    if (!cropModal) return;
+    cropModal.classList.add("hidden");
   };
 
   const setNameMode = (active) => {
@@ -713,13 +908,13 @@ function renderProfile() {
       fullNameInput.value = getUserFullName(currentUser);
       fullNameEl.classList.add("hidden");
       fullNameInput.classList.remove("hidden");
-      nameEditBtn.textContent = "âœ“";
+      nameEditBtn.textContent = "✓";
       fullNameInput.focus();
       fullNameInput.select();
     } else {
       fullNameEl.classList.remove("hidden");
       fullNameInput.classList.add("hidden");
-      nameEditBtn.textContent = "âœ";
+      nameEditBtn.textContent = "✎";
     }
   };
   const setEmailMode = (active) => {
@@ -729,13 +924,13 @@ function renderProfile() {
       emailInput.value = String(currentUser.email || "");
       emailEl.classList.add("hidden");
       emailInput.classList.remove("hidden");
-      emailEditBtn.textContent = "âœ“";
+      emailEditBtn.textContent = "✓";
       emailInput.focus();
       emailInput.select();
     } else {
       emailEl.classList.remove("hidden");
       emailInput.classList.add("hidden");
-      emailEditBtn.textContent = "âœ";
+      emailEditBtn.textContent = "✎";
     }
   };
   const setPhoneMode = (active) => {
@@ -745,13 +940,13 @@ function renderProfile() {
       phoneInput.value = String(currentUser.telefon || "").replace(/\D/g, "");
       phoneEl.classList.add("hidden");
       phoneInput.classList.remove("hidden");
-      phoneEditBtn.textContent = "âœ“";
+      phoneEditBtn.textContent = "✓";
       phoneInput.focus();
       phoneInput.select();
     } else {
       phoneEl.classList.remove("hidden");
       phoneInput.classList.add("hidden");
-      phoneEditBtn.textContent = "âœ";
+      phoneEditBtn.textContent = "✎";
     }
   };
   const setAboutMode = (active) => {
@@ -761,12 +956,12 @@ function renderProfile() {
       aboutInput.value = savedAbout || "";
       aboutEl.classList.add("hidden");
       aboutInput.classList.remove("hidden");
-      aboutEditBtn.textContent = "âœ“";
+      aboutEditBtn.textContent = "✓";
       aboutInput.focus();
     } else {
       aboutEl.classList.remove("hidden");
       aboutInput.classList.add("hidden");
-      aboutEditBtn.textContent = "âœ";
+      aboutEditBtn.textContent = "✎";
     }
   };
 
@@ -783,7 +978,11 @@ function renderProfile() {
     renderAvatar();
     setNameError("");
     setNameMode(false);
-    await syncUserSave();
+    try {
+      await syncUserSave();
+    } catch (error) {
+      setNameError(error?.message || "Ad soyad kaydedilemedi.");
+    }
   };
 
   const saveEmail = async () => {
@@ -797,7 +996,11 @@ function renderProfile() {
     if (emailEl) emailEl.textContent = value;
     setEmailError("");
     setEmailMode(false);
-    await syncUserSave();
+    try {
+      await syncUserSave();
+    } catch (error) {
+      setEmailError(error?.message || "E-posta kaydedilemedi.");
+    }
   };
 
   const savePhone = async () => {
@@ -807,7 +1010,11 @@ function renderProfile() {
     localStorage.setItem("currentUser", JSON.stringify(currentUser));
     if (phoneEl) phoneEl.textContent = value;
     setPhoneMode(false);
-    await syncUserSave();
+    try {
+      await syncUserSave();
+    } catch (error) {
+      if (photoErrorEl) photoErrorEl.textContent = error?.message || "Telefon kaydedilemedi.";
+    }
   };
 
   const saveAbout = () => {
@@ -870,14 +1077,81 @@ function renderProfile() {
       }
       const reader = new FileReader();
       reader.onload = async () => {
-        currentUser.profilFoto = String(reader.result || "");
-        localStorage.setItem("currentUser", JSON.stringify(currentUser));
-        await syncUserSave();
-        renderAvatar();
-        renderSidebarAvatar(currentUser);
+        const imageSrc = String(reader.result || "");
+        openCropModal(imageSrc);
       };
       reader.readAsDataURL(file);
       photoInputEl.value = "";
+    };
+  }
+
+  if (cropStage && cropImage) {
+    cropStage.onwheel = (event) => {
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.08 : 0.08;
+      cropState.scale = Math.min(4, Math.max(0.25, cropState.scale + delta));
+      applyCropTransform();
+    };
+
+    cropStage.onmousedown = (event) => {
+      cropState.dragging = true;
+      cropState.startX = event.clientX;
+      cropState.startY = event.clientY;
+    };
+
+    cropStage.onmousemove = (event) => {
+      if (!cropState.dragging) return;
+      const dx = event.clientX - cropState.startX;
+      const dy = event.clientY - cropState.startY;
+      cropState.startX = event.clientX;
+      cropState.startY = event.clientY;
+      cropState.x += dx;
+      cropState.y += dy;
+      applyCropTransform();
+    };
+
+    cropStage.onmouseup = () => {
+      cropState.dragging = false;
+    };
+
+    cropStage.onmouseleave = () => {
+      cropState.dragging = false;
+    };
+  }
+
+  if (cancelCropBtn) cancelCropBtn.onclick = () => closeCropModal();
+  if (applyCropBtn) {
+    applyCropBtn.onclick = async () => {
+      if (!cropImage || !cropImage.naturalWidth || !cropStage) return;
+      const stageRect = cropStage.getBoundingClientRect();
+      const canvasSize = 512;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const scaledW = cropImage.naturalWidth * cropState.scale;
+      const scaledH = cropImage.naturalHeight * cropState.scale;
+      const drawX = (canvasSize - scaledW) / 2 + (cropState.x * canvasSize) / Math.max(stageRect.width, 1);
+      const drawY = (canvasSize - scaledH) / 2 + (cropState.y * canvasSize) / Math.max(stageRect.height, 1);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(cropImage, drawX, drawY, scaledW, scaledH);
+      ctx.restore();
+      currentUser.profilFoto = canvas.toDataURL("image/png");
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      try {
+        await syncUserSave();
+        renderAvatar();
+        renderSidebarAvatar(currentUser);
+        if (photoErrorEl) photoErrorEl.textContent = "";
+        closeCropModal();
+      } catch (error) {
+        if (photoErrorEl) photoErrorEl.textContent = error?.message || "Profil fotoğrafı kaydedilemedi.";
+      }
     };
   }
   if (profileAvatarEl) {
@@ -920,9 +1194,16 @@ async function handleCreateTask(event) {
     createdAt: new Date().toISOString()
   };
   requests.unshift(request);
+  requests = sortRequestsQueuedFirst(requests);
   await window.api.saveRequests(requests);
   closeTaskModalFn();
-  if (document.querySelector(".nav-link.active")?.dataset.view === "gelen-talepler") renderRequests();
+  const currentUrl = window.location.href;
+  window.location.reload();
+  setTimeout(() => {
+    if (window.location.href === currentUrl) {
+      window.location.href = currentUrl;
+    }
+  }, 120);
 }
 
 function openTaskModal() {
@@ -995,6 +1276,14 @@ function bindShellEvents() {
   }
   if (confirmUserDelete) confirmUserDelete.addEventListener("click", handleDeleteUserConfirm);
   if (userDeleteModal) userDeleteModal.addEventListener("click", (e) => e.target === userDeleteModal && closeUserDeleteModalFn());
+
+  if (cancelRequestClose) cancelRequestClose.addEventListener("click", closeRequestCloseModalFn);
+  if (requestCloseConfirmCheck && confirmRequestClose) {
+    requestCloseConfirmCheck.addEventListener("change", () => {
+      confirmRequestClose.disabled = !requestCloseConfirmCheck.checked;
+    });
+  }
+  if (confirmRequestClose) confirmRequestClose.addEventListener("click", handleRequestCloseConfirm);
 }
 
 async function init() {

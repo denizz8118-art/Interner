@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./app.css" />
+    <link rel="stylesheet" href="./styles/sidebar.css" />
+    <link rel="stylesheet" href="./styles/tasks.css" />
+    <link rel="stylesheet" href="./styles/requests.css" />
   </head>
   <body>
     <div id="appShell" class="app-shell">
@@ -273,6 +276,31 @@
           <div class="user-delete-actions-right">
             <button id="cancelUserDelete" type="button" class="btn-ghost">İptal</button>
             <button id="confirmUserDelete" type="button" class="btn-danger" disabled>Kullanıcıyı Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="requestCloseModal" class="modal-overlay hidden">
+      <div class="modal-card request-close-modal">
+        <div class="request-close-head">
+          <div id="requestCloseAvatar" class="request-close-avatar">--</div>
+          <strong id="requestCloseName" class="request-close-name">-</strong>
+          <div class="request-close-meta">
+            <span id="requestCloseDept">-</span>
+            <span id="requestCloseTitle">-</span>
+          </div>
+          <h3 class="request-close-title">Talebi Kapat</h3>
+          <p id="requestCloseDescription" class="request-close-desc">-</p>
+        </div>
+        <div class="request-close-actions">
+          <label class="request-close-check">
+            <input id="requestCloseConfirmCheck" type="checkbox" />
+            <span>Evet kapatmak istiyorum</span>
+          </label>
+          <div class="request-close-actions-right">
+            <button id="cancelRequestClose" type="button" class="btn-ghost">İptal</button>
+            <button id="confirmRequestClose" type="button" class="btn-danger" disabled>Görevi Kapat</button>
           </div>
         </div>
       </div>

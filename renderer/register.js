@@ -24,25 +24,26 @@ registerForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const chunks = fullName.split(" ").filter(Boolean);
-  const ad = chunks.shift() || "";
-  const soyad = chunks.join(" ") || "-";
-
   const payload = {
     id: String(Date.now()),
-    ad,
-    soyad,
+    ad_soyad: fullName,
     email,
     sifre: password,
     rol: "STAJYER",
     departman: "Genel",
     sirketUnvan: "Stajyer",
-    profilFoto: null
+    telefon: "***"
   };
 
-  const result = await window.api.register(payload);
-  if (!result?.ok) {
-    errorText.textContent = result?.error || "Kayıt sırasında hata oluştu.";
+  try {
+    const createResult = await window.api.createUser(payload);
+    if (!createResult?.ok) {
+      errorText.textContent = createResult?.error || "Kayıt sırasında hata oluştu.";
+      return;
+    }
+    if (createResult?.path) console.log("[register:createUser] saved", { path: createResult.path, count: createResult.count });
+  } catch (error) {
+    errorText.textContent = error?.message || "Kayıt sırasında bağlantı hatası oluştu.";
     return;
   }
 

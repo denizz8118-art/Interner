@@ -1,0 +1,25 @@
+.app-shell {
+  grid-template-columns: 268px 1fr;
+}
+
+.sidebar {
+  width: 268px;
+  padding: 26px 12px 12px;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.user-box {
+  border-radius: 12px;
+  padding: 16px 10px 12px;
+  margin: 8px 2px 22px;
+}
+
+.user-avatar {
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 10px;
+  font-size: 22px;
+}
