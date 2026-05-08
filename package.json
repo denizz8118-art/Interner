@@ -1,0 +1,12 @@
+{
+  "name": "stajyer-yonetim-sistemi",
+  "version": "1.0.0",
+  "description": "Stajyer Yonetim Sistemi Electron masaustu uygulamasi",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^37.10.3"
+  }
+}

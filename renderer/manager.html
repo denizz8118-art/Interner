@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kullanıcı Yönetimi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body class="manager-page">
+    <div class="app-layout">
+      <aside id="sidebar" class="sidebar expanded">
+        <div>
+          <div class="sidebar-top">
+            <div class="brand-wrap">
+              <h2>InternSystem</h2>
+              <p id="deptName">Yönetim</p>
+            </div>
+            <button id="sidebarToggle" class="icon-btn">☰</button>
+          </div>
+          <nav>
+            <button class="nav-item"><span>🏢</span><strong>Departmanlar</strong></button>
+            <button class="nav-item active"><span>👥</span><strong>Kullanıcılar</strong></button>
+            <button class="nav-item"><span>👤</span><strong>Lider</strong></button>
+            <button class="nav-item"><span>📋</span><strong>Departman Takibi</strong></button>
+            <button class="nav-item"><span>📝</span><strong>Görev Takibi</strong></button>
+            <button class="nav-item"><span>⚙️</span><strong>Erişim Ayarları</strong></button>
+            <button class="nav-item"><span>💬</span><strong>Kullanıcılar (alt)</strong></button>
+            <button class="nav-item"><span>📊</span><strong>Departmanlar (alt)</strong></button>
+          </nav>
+        </div>
+        <div class="sidebar-bottom">
+          <div class="user-mini">
+            <div id="miniAvatar" class="mini-avatar">AY</div>
+            <div class="mini-user-meta">
+              <strong id="miniUserName">Ahmet Yılmaz</strong>
+              <span>Müdür</span>
+            </div>
+          </div>
+          <button id="logoutBtn" class="logout-btn">Çıkış Yap</button>
+        </div>
+      </aside>
+
+      <section class="content-area">
+        <header class="top-bar">
+          <h1>Kullanıcı Yönetimi</h1>
+          <div class="top-icons">
+            <button class="icon-btn">🔔</button>
+            <button class="icon-btn">⚙️</button>
+          </div>
+        </header>
+
+        <main class="main-panel">
+          <div class="toolbar">
+            <div id="roleTabs" class="role-tabs">
+              <button class="tab-btn active" data-role="ALL">Tümü</button>
+              <button class="tab-btn" data-role="MANAGER">Manager</button>
+              <button class="tab-btn" data-role="LEADER">Leader</button>
+              <button class="tab-btn" data-role="ADMIN">Admin</button>
+              <button class="tab-btn" data-role="STAJYER">Stajyer</button>
+            </div>
+            <div class="tools-right">
+              <div class="search-wrap">
+                <span>🔍</span>
+                <input id="searchInput" type="text" placeholder="Kullanıcı Ara..." />
+              </div>
+              <button id="openModalBtn" class="primary-btn small">+ Yeni Kullanıcı Ekle</button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ad Soyad</th>
+                  <th>E-posta</th>
+                  <th>Departman</th>
+                  <th>Rol</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+        </main>
+      </section>
+    </div>
+
+    <div id="userModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Yeni Kullanıcı Ekle</h3>
+          <button id="closeModalBtn" class="icon-btn">✕</button>
+        </div>
+        <div class="divider thin"></div>
+
+        <form id="userForm" class="modal-form">
+          <div class="field">
+            <label>Ad Soyad</label>
+            <input id="fullName" type="text" placeholder="İsim Soyisim" />
+          </div>
+          <div class="field">
+            <label>E-posta</label>
+            <input id="newEmail" type="email" placeholder="ornek@sirket.com" />
+          </div>
+          <div class="field">
+            <label>Şifre</label>
+            <div class="input-wrap">
+              <input id="newPassword" type="password" placeholder="******" />
+              <button id="toggleNewPassword" type="button" class="right-icon">👁</button>
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label>Departman</label>
+              <select id="departmentSelect">
+                <option value="">Seçiniz</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Rol</label>
+              <select id="roleSelect">
+                <option value="">Seçiniz</option>
+                <option value="MANAGER">Manager</option>
+                <option value="LEADER">Leader</option>
+                <option value="ADMIN">Admin</option>
+                <option value="STAJYER">Stajyer</option>
+              </select>
+            </div>
+          </div>
+          <p id="modalError" class="error-text"></p>
+          <div class="divider thin"></div>
+          <div class="modal-actions">
+            <button id="cancelModalBtn" class="ghost-btn" type="button">İptal</button>
+            <button class="primary-btn small" type="submit">Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="./manager.js"></script>
+  </body>
+</html>

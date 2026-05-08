@@ -1,0 +1,119 @@
+<section class="profile-v2-shell">
+  <section class="card profile-v2-hero">
+    <div class="profile-v2-photo-wrap">
+      <div id="profileAvatar" class="profile-v2-photo">--</div>
+      <button id="profilePhotoCameraBtn" class="profile-v2-camera">📷</button>
+      <input id="profilePhotoInput" type="file" accept="image/*" class="profile-v2-hidden-file" />
+      <p id="profilePhotoError" class="profile-v2-photo-error"></p>
+    </div>
+    <div class="profile-v2-hero-meta">
+      <div class="profile-v2-name-row">
+        <h1 id="profileFullName" class="profile-v2-name">-</h1>
+        <input id="profileFullNameInput" class="profile-v2-name-input hidden" />
+        <button id="profileNameEditBtn" type="button" class="profile-v2-name-edit-btn" title="Ad Soyad Düzenle">✎</button>
+      </div>
+      <p id="profileNameError" class="profile-v2-contact-error"></p>
+      <div class="profile-v2-chip-row">
+        <span id="profileTitle" class="profile-v2-chip">-</span>
+        <span id="profileDepartmentBadge" class="profile-v2-department">-</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="profile-v2-grid">
+    <div class="profile-v2-main">
+      <section class="card profile-v2-card">
+        <h3>İletişim Bilgileri</h3>
+        <div class="profile-v2-contact-grid">
+          <div class="profile-v2-contact-box">
+            <div class="profile-v2-contact-icon">✉</div>
+            <div>
+              <p class="profile-v2-contact-label">E-POSTA</p>
+              <div class="profile-v2-contact-edit-row">
+                <p id="profileInfoEmail" class="profile-v2-contact-value">-</p>
+                <input id="profileInfoEmailInput" class="profile-v2-contact-input hidden" type="email" />
+                <button id="profileEmailEditBtn" type="button" class="profile-v2-name-edit-btn" title="E-posta Düzenle">✎</button>
+              </div>
+              <p id="profileEmailError" class="profile-v2-contact-error"></p>
+            </div>
+          </div>
+          <div class="profile-v2-contact-box">
+            <div class="profile-v2-contact-icon profile-v2-call">☎</div>
+            <div>
+              <p class="profile-v2-contact-label">TELEFON</p>
+              <div class="profile-v2-contact-edit-row">
+                <p id="profilePhone" class="profile-v2-contact-value">+90 532 123 45 67</p>
+                <input id="profilePhoneInput" class="profile-v2-contact-input hidden" inputmode="numeric" />
+                <button id="profilePhoneEditBtn" type="button" class="profile-v2-name-edit-btn" title="Telefon Düzenle">✎</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card profile-v2-card">
+        <div class="profile-v2-card-head">
+          <h3>Hakkımda</h3>
+          <button id="profileAboutEditBtn" type="button" class="profile-v2-plain-btn" title="Hakkımda Düzenle">✎</button>
+        </div>
+        <div class="profile-v2-about-box">
+          <p id="profileAboutText">Yazılım geliştirme süreçlerine meraklı, öğrenmeye açık ve ekip çalışmasına yatkın bir stajyerim. Modern web teknolojileri ve sürdürülebilir kod mimarileri üzerine kendimi geliştirmeyi hedefliyorum.</p>
+          <textarea id="profileAboutInput" class="profile-v2-about-input hidden"></textarea>
+        </div>
+      </section>
+    </div>
+
+    <aside class="profile-v2-side">
+      <section class="card profile-v2-card">
+        <h3>Çalışma Saatleri</h3>
+        <div class="profile-v2-hours-box">
+          <div>
+            <p id="profileWorkHours" class="profile-v2-hours-time">09:00 - 18:00</p>
+            <p class="profile-v2-hours-sub">Hafta İçi Mesai</p>
+          </div>
+          <span class="profile-v2-active">AKTİF</span>
+        </div>
+      </section>
+
+      <section class="card profile-v2-card">
+        <h3>Özelleştirme</h3>
+        <div class="profile-v2-dark-row">
+          <span>Karanlık Mod</span>
+          <button class="profile-v2-toggle"><span></span></button>
+        </div>
+        <label class="small profile-v2-label">DİL SEÇİMİ</label>
+        <select class="input profile-v2-input"><option>Türkçe</option><option>English</option></select>
+        <label class="small profile-v2-label">VURGU RENGİ</label>
+        <div class="profile-v2-colors">
+          <span class="profile-v2-color c1"></span>
+          <span class="profile-v2-color c2"></span>
+          <span class="profile-v2-color c3"></span>
+          <span class="profile-v2-color c4"></span>
+          <span class="profile-v2-color c5"></span>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+
+  <div id="profileImageModal" class="profile-image-modal hidden">
+    <img id="profileImageModalImg" alt="Profil Fotoğrafı" class="profile-image-modal-img" />
+  </div>
+
+  <div id="profileCropModal" class="profile-crop-modal hidden">
+    <div class="profile-crop-card">
+      <h4>Profil Fotoğrafını Konumlandır</h4>
+      <p>Fotoğrafı sürükleyin, tekerlek ile yakınlaştırıp uzaklaştırın.</p>
+
+      <div id="profileCropStage" class="profile-crop-stage">
+        <img id="profileCropImage" alt="Kırpma Önizleme" class="profile-crop-image" />
+        <div id="profileCropViewport" class="profile-crop-viewport"></div>
+      </div>
+
+      <div class="profile-crop-actions">
+        <button id="cancelProfileCrop" type="button" class="btn-ghost">İptal</button>
+        <button id="applyProfileCrop" type="button" class="btn-primary">Uygula</button>
+      </div>
+    </div>
+  </div>
+</section>

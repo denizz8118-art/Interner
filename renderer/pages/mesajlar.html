@@ -1,0 +1,37 @@
+<section>
+  <div class="messages-shell">
+    <aside class="messages-left card messages-panel">
+      <div class="messages-panel-head">
+        <h2>Mesajlar</h2>
+        <button class="messages-compose-btn" type="button">✎</button>
+      </div>
+      <input id="conversationSearch" class="input messages-search" placeholder="Konuşma ara..." />
+      <div id="conversationList" class="conversation-list"></div>
+    </aside>
+    <section class="messages-right card messages-chat-card">
+      <header class="messages-chat-header">
+        <div class="messages-chat-user">
+          <div id="chatUserAvatar" class="chat-user-avatar">EY</div>
+          <div>
+          <div id="chatHeader" class="messages-chat-title">Konuşma Seçiniz</div>
+          <div id="chatSubHeader" class="messages-chat-subtitle">Stajyer, Pazarlama Departmanı</div>
+          </div>
+        </div>
+        <div class="messages-chat-actions">
+          <button class="icon-btn">📹</button>
+          <button class="icon-btn">📞</button>
+          <button class="icon-btn">🔍</button>
+          <span class="messages-actions-divider"></span>
+          <button class="icon-btn">⋮</button>
+        </div>
+      </header>
+      <div id="chatStream" class="chat-stream"></div>
+      <form id="messageForm" class="messages-input-row">
+        <button class="icon-btn" type="button">⊕</button>
+        <button class="icon-btn" type="button">☺</button>
+        <input id="messageInput" class="input" placeholder="Bir mesaj yazın..." />
+        <button class="btn-primary messages-send" type="submit">➤</button>
+      </form>
+    </section>
+  </div>
+</section>

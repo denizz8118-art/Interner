@@ -1,0 +1,76 @@
+﻿<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kayıt Ol | IMS Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body class="auth-body">
+    <main class="register-stage">
+      <div class="register-shell">
+        <div class="register-brand">
+          <img
+            class="register-brand-icon"
+            src="./assets/icons/account-icon.png"
+            alt="Account simgesi"
+          />
+          <span>İnterner</span>
+        </div>
+        <section class="register-grid">
+          <article class="register-hero">
+            <img
+              src="./assets/images/register-hero.png"
+              alt="Tanıtım görseli"
+            />
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+              <span class="hero-chip">Geleceği İnşa Edin</span>
+              <h2>Yeni Nesil Staj Yönetim Sistemi</h2>
+              <p>Mentorlar ve stajyerler arasındaki bağı güçlendiren profesyonel yönetim portalı.</p>
+            </div>
+          </article>
+
+          <article class="register-form-card">
+            <h1 class="auth-title reg-title">Hesap Oluştur</h1>
+            <p class="auth-subtitle reg-sub">Lütfen aşağıdaki bilgileri eksiksiz doldurun.</p>
+
+            <form id="registerForm" class="auth-form">
+              <div class="grid-2">
+                <div>
+                  <label class="small" for="fullName">Ad Soyad</label>
+                  <input id="fullName" class="input" type="text" placeholder="Örn: Ahmet Yılmaz" required />
+                </div>
+                <div>
+                  <label class="small" for="regEmail">E-posta Adresi</label>
+                  <input id="regEmail" class="input" type="email" placeholder="ahmet@sirket.com" required />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div>
+                  <label class="small" for="regPassword">Şifre</label>
+                  <input id="regPassword" class="input" type="password" placeholder="••••••••" required />
+                </div>
+                <div>
+                  <label class="small" for="regPasswordRepeat">Şifre Tekrar</label>
+                  <input id="regPasswordRepeat" class="input" type="password" placeholder="••••••••" required />
+                </div>
+              </div>
+
+              <label class="remember-line"><input id="termsAccepted" type="checkbox" /> Kullanım koşullarını kabul ediyorum.</label>
+              <button class="btn-primary register-submit" type="submit">Kayıt Ol</button>
+              <p id="registerError" class="error-text"></p>
+            </form>
+
+            <p class="auth-footer register-footer">Zaten hesabınız var mı? <a href="./login.html">Giriş Yap</a></p>
+          </article>
+        </section>
+      </div>
+    </main>
+    <script src="./register.js"></script>
+  </body>
+</html>

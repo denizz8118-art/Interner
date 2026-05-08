@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Intern Management System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <div id="appShell" class="app-shell">
+      <aside id="sidebar" class="sidebar app-sidebar">
+        <div>
+          <div class="user-box">
+            <div id="sidebarUserAvatar" class="user-avatar">-</div>
+            <div class="user-name" id="sidebarUserName">-</div>
+            <div class="user-chip" id="sidebarUserRole">-</div>
+            <div class="meta user-role" id="sidebarUserDept">-</div>
+          </div>
+          <nav class="nav">
+            <button class="nav-link" data-view="panel"><span class="nav-icon">◫</span><span class="label">Panel</span></button>
+            <button class="nav-link" data-view="gelen-talepler"><span class="nav-icon">⌂</span><span class="label">Gelen Talepler</span></button>
+            <button class="nav-link active" data-view="gorevlerim"><span class="nav-icon">☑</span><span class="label">Görevlerim</span></button>
+            <button class="nav-link" data-view="departmanlar"><span class="nav-icon">▤</span><span class="label">Departmanlar</span></button>
+            <button class="nav-link" data-view="mesajlar"><span class="nav-icon">◱</span><span class="label">Mesajlar</span></button>
+            <button class="nav-link" data-view="profil"><span class="nav-icon">◌</span><span class="label">Profil</span></button>
+            <button class="nav-link" data-view="kullanicilar"><span class="nav-icon">◍</span><span class="label">Kullanıcılar</span></button>
+            <button class="nav-link" data-view="stajyerlerim"><span class="nav-icon">◎</span><span class="label">Stajyerlerim</span></button>
+            <button class="nav-link" data-view="gorev-olustur"><span class="nav-icon">✛</span><span class="label">Görev Oluştur</span></button>
+            <button class="nav-link" data-view="erisim-ayarlari"><span class="nav-icon">⌘</span><span class="label">Erişim Ayarları</span></button>
+          </nav>
+        </div>
+        <div class="sidebar-footer">
+          <div class="sidebar-divider"></div>
+          <button class="logout-btn"><span>⚙</span><span>Ayarlar</span></button>
+          <button id="logoutBtn" class="logout-btn"><span>⇥</span><span>Çıkış Yap</span></button>
+        </div>
+      </aside>
+
+      <section class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-btn" id="mobileMenuBtn">☰</button>
+            <strong>Intern Management System</strong>
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn">🔔</button>
+            <div class="topbar-avatar">👤</div>
+          </div>
+        </header>
+        <main id="viewRoot" class="view-root"></main>
+      </section>
+    </div>
+
+    <div id="taskModal" class="modal-overlay hidden">
+      <div class="modal-card task-create-modal">
+        <div class="task-create-head">
+          <h3>Yeni Görev Oluştur</h3>
+          <p>Stajyerleriniz için yeni bir çalışma veya proje tanımlayın.</p>
+        </div>
+        <form id="taskCreateForm" class="task-create-form">
+          <div class="task-create-field">
+            <label class="small">Görev Başlığı</label>
+            <input id="taskTitle" class="input" placeholder="Örn: Frontend Refactoring" required />
+          </div>
+
+          <div class="task-create-field">
+            <label class="small">Açıklama</label>
+            <textarea id="taskDescription" class="input task-create-textarea" placeholder="Görevin kapsamını ve beklentilerinizi detaylandırın..." required></textarea>
+          </div>
+
+          <div class="task-create-grid">
+            <div class="task-create-field">
+              <label class="small">Stajyer Seçimi</label>
+              <input id="taskUsers" class="input" placeholder="Örn: Ahmet Yılmaz, Elif Kaya" required />
+            </div>
+            <div class="task-create-field">
+              <label class="small">Öncelik Durumu</label>
+              <select id="taskPriority" class="input" required>
+                <option value="Düşük">Düşük</option>
+                <option value="Orta" selected>Orta</option>
+                <option value="Önemli">Önemli</option>
+                <option value="Kritik">Kritik</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="task-create-note">
+            <span>ⓘ Kritik görevler için teslim tarihi zorunludur.</span>
+            <label class="small">Teslim Tarihi</label>
+            <input id="taskDueDate" type="date" class="input" />
+          </div>
+
+          <div class="task-create-field">
+            <label class="small">Dosya Ekleri</label>
+            <div class="task-create-upload">
+              <div class="task-create-upload-icon">⇪</div>
+              <p>Dosyayı buraya sürükleyin veya seçin</p>
+              <small>Maksimum dosya boyutu: 25MB (PDF, PNG, JPG)</small>
+            </div>
+          </div>
+
+          <div class="task-create-extra">
+            <label class="small">Süre Başlangıcı</label>
+            <select id="taskStartMode" class="input">
+              <option value="assigned">Atandığında Başlasın</option>
+              <option value="accepted">Kabul Edildiğinde Başlasın</option>
+            </select>
+          </div>
+
+          <p id="taskModalError" class="error-text"></p>
+          <div class="task-create-actions">
+            <button type="button" id="closeTaskModal" class="btn-ghost">İptal</button>
+            <button type="submit" class="btn-primary">Görevi Oluştur</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="taskDetailModal" class="modal-overlay hidden">
+      <div class="modal-card task-detail-modal">
+        <div class="task-detail-top">
+          <div class="task-detail-head-tags">
+            <span class="task-detail-tag task-detail-tag-main">GÖREV DETAYI</span>
+            <span id="taskDetailDueTag" class="task-detail-tag">◷ Son Teslim Tarihi: -</span>
+            <span id="taskDetailPriorityTag" class="task-detail-tag">! Öncelik: -</span>
+          </div>
+          <button id="closeTaskDetailModal" class="task-detail-close">✕</button>
+        </div>
+
+        <h3 id="taskDetailTitle" class="task-detail-title">-</h3>
+
+        <div class="task-detail-section">
+          <h4>ⓘ GÖREV AÇIKLAMASI</h4>
+          <p id="taskDetailDescription">-</p>
+        </div>
+
+        <div class="task-detail-grid">
+          <div class="task-detail-box">
+            <h5>GÖREVİ ATAYAN YÖNETİCİ</h5>
+            <div class="task-detail-manager">
+              <div id="taskDetailManagerAvatar" class="task-detail-avatar">--</div>
+              <div class="task-detail-manager-content">
+                <strong id="taskDetailManagerName">-</strong>
+                <div class="task-detail-manager-meta-row">
+                  <span id="taskDetailManagerRole">-</span>
+                  <span id="taskDetailManagerDept">-</span>
+                </div>
+              </div>
+              <button class="task-detail-mail-btn">✉</button>
+            </div>
+          </div>
+
+          <div class="task-detail-box task-detail-links-box">
+            <h5>EKLER VE BAĞLANTILAR</h5>
+            <div class="task-detail-link">
+              <span class="task-detail-link-icon">📎</span>
+              <div class="task-detail-link-content">
+                <span>QA_Standartlari_V2.pdf</span>
+                <small>1.2MB • PDF Belgesi</small>
+              </div>
+              <span class="task-detail-link-action">⇩</span>
+            </div>
+            <div class="task-detail-link">
+              <span class="task-detail-link-icon">🔗</span>
+              <div class="task-detail-link-content">
+                <span>Geliştirme Paneli (Jira)</span>
+                <small>internal-jira.company.com</small>
+              </div>
+              <span class="task-detail-link-action">↗</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-detail-actions">
+          <button class="task-detail-btn task-detail-btn-ghost">Erteleme Talep Et</button>
+          <button class="task-detail-btn task-detail-btn-primary">Onaya Gönder <span>▷</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="userCreateModal" class="modal-overlay hidden">
+      <div class="modal-card user-create-modal">
+        <button id="closeUserCreateModal" class="user-create-close">✕</button>
+        <div class="user-create-top">
+          <div class="user-create-avatar-wrap">
+            <div class="user-create-avatar">📷</div>
+            <button type="button" class="user-create-avatar-edit">✎</button>
+          </div>
+          <h3>Yeni Kullanıcı Bilgileri</h3>
+          <p>Lütfen gerekli tüm alanları eksiksiz doldurunuz.</p>
+        </div>
+
+        <form id="userCreateForm" class="user-create-form">
+          <div class="user-create-grid">
+            <label class="user-create-field">
+              <span>AD SOYAD</span>
+              <input id="newUserFullName" class="input" placeholder="Örn: Mehmet Can" required />
+            </label>
+            <label class="user-create-field">
+              <span>E-POSTA</span>
+              <input id="newUserEmail" type="email" class="input" placeholder="mehmet.can@sirket.com" required />
+            </label>
+          </div>
+
+          <div class="user-create-grid">
+            <label class="user-create-field">
+              <span>ŞİFRE</span>
+              <input id="newUserPassword" type="password" class="input" placeholder="••••••••" required />
+            </label>
+            <label class="user-create-field">
+              <span>ŞİFRE TEKRAR</span>
+              <input id="newUserPasswordAgain" type="password" class="input" placeholder="••••••••" required />
+            </label>
+          </div>
+
+          <div class="user-create-grid">
+            <label class="user-create-field">
+              <span>DEPARTMAN</span>
+              <select id="newUserDepartment" class="input" required>
+                <option value="">Departman Seçiniz</option>
+                <option value="Yazılım Geliştirme">Yazılım Geliştirme</option>
+                <option value="Yazılım">Yazılım</option>
+                <option value="Ürün Tasarımı">Ürün Tasarımı</option>
+                <option value="Pazarlama">Pazarlama</option>
+                <option value="Veri Analizi">Veri Analizi</option>
+                <option value="Yönetim">Yönetim</option>
+                <option value="Genel">Genel</option>
+              </select>
+            </label>
+            <label class="user-create-field">
+              <span>YETKİ / ROL</span>
+              <select id="newUserRole" class="input" required>
+                <option value="">Rol Seçiniz</option>
+                <option value="ADMIN">Admin</option>
+                <option value="LEADER">Lider</option>
+                <option value="MANAGER">Müdür</option>
+                <option value="STAJYER">Stajyer</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="user-create-check">
+            <input id="newUserSendMail" type="checkbox" />
+            <span>Kullanıcıya giriş bilgilerini e-posta ile gönder.</span>
+          </label>
+
+          <p id="userCreateError" class="error-text"></p>
+
+          <div class="user-create-actions">
+            <button id="cancelUserCreate" type="button" class="btn-ghost">İptal</button>
+            <button type="submit" class="btn-primary">Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="userDeleteModal" class="modal-overlay hidden">
+      <div class="modal-card user-delete-modal">
+        <div class="user-delete-head">
+          <div id="userDeleteAvatar" class="user-delete-avatar">--</div>
+          <strong id="userDeleteNameTop" class="user-delete-name-top">-</strong>
+          <h3 class="user-delete-title">Kullanıcı Hesabını Sil</h3>
+          <p id="userDeleteDescription" class="user-delete-desc">-</p>
+        </div>
+        <div class="user-delete-actions">
+          <label class="user-delete-check">
+            <input id="userDeleteConfirmCheck" type="checkbox" />
+            <span>Evet istiyorum</span>
+          </label>
+          <div class="user-delete-actions-right">
+            <button id="cancelUserDelete" type="button" class="btn-ghost">İptal</button>
+            <button id="confirmUserDelete" type="button" class="btn-danger" disabled>Kullanıcıyı Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="./pages/mesajlar.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

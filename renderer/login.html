@@ -1,0 +1,62 @@
+﻿<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş Yap | IMS Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body class="auth-body">
+    <main class="login-stage">
+      <section class="auth-card login-clone-card">
+        <div class="login-logo-box">
+          <img
+            src="./assets/icons/account-icon.png"
+            alt="Account simgesi"
+          />
+        </div>
+        <h1 class="auth-title login-brand">İnterner</h1>
+        <p class="auth-subtitle login-sub">Merkezi Stajyer Yönetim ve Takip Sistemi</p>
+
+        <h2 class="welcome-title">Tekrar Hoş Geldiniz</h2>
+        <p class="welcome-sub">Lütfen bilgilerinizi kullanarak giriş yapın.</p>
+
+        <form id="loginForm" class="auth-form">
+          <label class="small" for="email">E-posta Adresi</label>
+          <div class="input-row">
+            <span class="input-icon">✉</span>
+            <input id="email" class="input" type="email" placeholder="e@sirket.com" required />
+          </div>
+
+          <div class="password-head">
+            <label class="small" for="password">Şifre</label>
+            <a href="javascript:void(0)" class="forgot-link">Şifremi Unuttum?</a>
+          </div>
+          <div class="input-row">
+            <span class="input-icon">🔒</span>
+            <input id="password" class="input" type="password" placeholder="•••••••" required />
+            <button id="togglePassword" class="eye-btn" type="button">👁</button>
+          </div>
+
+          <label class="remember-line"><input type="checkbox" /> Beni hatırla</label>
+          <button class="btn-primary login-submit" type="submit">Giriş Yap →</button>
+          <p id="errorText" class="error-text"></p>
+        </form>
+
+        <p class="auth-footer">Hesabınız yok mu? <a href="./register.html">Hemen Kayıt Ol</a></p>
+      </section>
+    </main>
+    <footer class="auth-bottom-links">
+      <span>© 2024 Intern Management System. Tüm Hakları Saklıdır.</span>
+      <div>
+        <a href="javascript:void(0)">Gizlilik Politikası</a>
+        <a href="javascript:void(0)">Kullanım Koşulları</a>
+        <a href="javascript:void(0)">Destek</a>
+      </div>
+    </footer>
+    <script src="./login.js"></script>
+  </body>
+</html>
