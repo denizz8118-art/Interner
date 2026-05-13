@@ -14,5 +14,22 @@ contextBridge.exposeInMainWorld("api", {
   listRequests: () => ipcRenderer.invoke("requests:list"),
   saveRequests: (requests) => ipcRenderer.invoke("requests:save", requests),
   listMessages: () => ipcRenderer.invoke("messages:list"),
-  saveMessages: (messages) => ipcRenderer.invoke("messages:save", messages)
+  saveMessages: (messages) => ipcRenderer.invoke("messages:save", messages),
+  listUserPhotos: () => ipcRenderer.invoke("userPhotos:list"),
+  saveUserPhotos: (photos) => ipcRenderer.invoke("userPhotos:save", photos),
+  onMessagesUpdated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("messages:updated", handler);
+    return () => ipcRenderer.removeListener("messages:updated", handler);
+  },
+  onUsersUpdated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("users:updated", handler);
+    return () => ipcRenderer.removeListener("users:updated", handler);
+  },
+  onUserPhotosUpdated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("userPhotos:updated", handler);
+    return () => ipcRenderer.removeListener("userPhotos:updated", handler);
+  }
 });

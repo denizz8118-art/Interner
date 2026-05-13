@@ -260,6 +260,70 @@
       </div>
     </div>
 
+    <div id="userEditModal" class="modal-overlay hidden">
+      <div class="modal-card user-edit-modal">
+        <div class="user-delete-head">
+          <div id="userEditAvatar" class="user-delete-avatar">--</div>
+          <strong id="userEditNameTop" class="user-delete-name-top">-</strong>
+          <h3 class="user-delete-title">Kullanıcıyı Düzenle</h3>
+          <p id="userEditDescription" class="user-delete-desc">
+            Bu kullanıcının departmanını, rolünü ve çalışma saatlerini güncelleyebilirsiniz.
+          </p>
+        </div>
+        <form id="userEditForm" class="user-edit-form">
+          <div class="user-edit-fields">
+            <label class="user-edit-field">
+              <span class="small">DEPARTMAN</span>
+              <select id="userEditDepartment" class="input" required>
+                <option value="Yazılım Geliştirme">Yazılım Geliştirme</option>
+                <option value="Yazılım">Yazılım</option>
+                <option value="Ürün Tasarımı">Ürün Tasarımı</option>
+                <option value="Pazarlama">Pazarlama</option>
+                <option value="Veri Analizi">Veri Analizi</option>
+                <option value="Yönetim">Yönetim</option>
+                <option value="Genel">Genel</option>
+              </select>
+            </label>
+            <label class="user-edit-field">
+              <span class="small">ROL</span>
+              <select id="userEditRole" class="input" required>
+                <option value="STAJYER">Stajyer</option>
+                <option value="LEADER">Lider</option>
+                <option value="ADMIN">Admin</option>
+                <option value="MANAGER">Müdür</option>
+              </select>
+            </label>
+            <div class="user-edit-field user-edit-field-hours">
+              <span class="small">ÇALIŞMA SAATİ</span>
+              <div class="user-edit-hours-row">
+                <div class="user-edit-hour-block">
+                  <span class="user-edit-hour-label">Başlangıç</span>
+                  <div class="user-edit-hour-stepper">
+                    <button type="button" id="userEditStartUp" class="user-edit-hour-btn" aria-label="Saat artır">▲</button>
+                    <span id="userEditStartHourLabel" class="user-edit-hour-value">09:00</span>
+                    <button type="button" id="userEditStartDown" class="user-edit-hour-btn" aria-label="Saat azalt">▼</button>
+                  </div>
+                </div>
+                <div class="user-edit-hour-block">
+                  <span class="user-edit-hour-label">Bitiş</span>
+                  <div class="user-edit-hour-stepper">
+                    <button type="button" id="userEditEndUp" class="user-edit-hour-btn" aria-label="Saat artır">▲</button>
+                    <span id="userEditEndHourLabel" class="user-edit-hour-value">18:00</span>
+                    <button type="button" id="userEditEndDown" class="user-edit-hour-btn" aria-label="Saat azalt">▼</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p id="userEditError" class="error-text"></p>
+          <div class="user-edit-actions">
+            <button type="button" id="cancelUserEdit" class="btn-ghost">Vazgeç</button>
+            <button type="submit" class="btn-primary">Uygula</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div id="userDeleteModal" class="modal-overlay hidden">
       <div class="modal-card user-delete-modal">
         <div class="user-delete-head">

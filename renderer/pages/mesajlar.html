@@ -1,9 +1,22 @@
 <section>
+  <div id="messagesUserPicker" class="messages-picker-overlay" hidden aria-hidden="true">
+    <div class="messages-picker-backdrop" data-close-picker="1" aria-hidden="true"></div>
+    <div class="messages-picker-panel card" role="dialog" aria-labelledby="messagesPickerTitle">
+      <div class="messages-picker-head">
+        <h3 id="messagesPickerTitle">Kullanıcıya mesaj</h3>
+        <button type="button" class="messages-picker-close icon-btn" data-close-picker="1" aria-label="Kapat">×</button>
+      </div>
+      <p class="messages-picker-hint">Departman ve rol bilgisiyle tüm kullanıcılar listelenir; mesajlar paylaşılan veritabanında saklanır.</p>
+      <div id="messagesUserPickerList" class="messages-picker-list"></div>
+    </div>
+  </div>
+  <div id="convContextMenu" class="conv-context-menu" hidden role="menu"></div>
+
   <div class="messages-shell">
     <aside class="messages-left card messages-panel">
       <div class="messages-panel-head">
         <h2>Mesajlar</h2>
-        <button class="messages-compose-btn" type="button">✎</button>
+        <button class="messages-compose-btn" type="button" title="Kullanıcı seç">✎</button>
       </div>
       <input id="conversationSearch" class="input messages-search" placeholder="Konuşma ara..." />
       <div id="conversationList" class="conversation-list"></div>

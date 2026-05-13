@@ -8,6 +8,7 @@ const departmentsPath = path.join(dataDir, "departments.json");
 const tasksPath = path.join(dataDir, "tasks.json");
 const requestsPath = path.join(dataDir, "requests.json");
 const messagesPath = path.join(dataDir, "messages.json");
+const userPhotosPath = path.join(dataDir, "user_photos.json");
 
 // Bazı Windows profillerinde Electron cache dizinlerine yazma engeli olabiliyor.
 // Uygulamayı daha stabil başlatmak için cache'i devre dışı bırakıp userData'yı temp'e taşıyoruz.
@@ -35,6 +36,9 @@ function ensureDataFiles() {
   if (!fs.existsSync(messagesPath)) {
     fs.writeFileSync(messagesPath, "[]", "utf-8");
   }
+  if (!fs.existsSync(userPhotosPath)) {
+    fs.writeFileSync(userPhotosPath, "[]", "utf-8");
+  }
 }
 
 function parseJsonFile(filePath, fallback) {
@@ -57,6 +61,31 @@ function writeJsonFile(filePath, value) {
   if (verify === null) {
     throw new Error("JSON yazımı doğrulanamadı.");
   }
+}
+
+const DEFAULT_CALISMA_SAATI = "09:00 - 18:00";
+
+/** Profil fotoğrafı base64 vb. diske yazılmaz; sadece oturum (localStorage) tarafında tutulabilir. */
+function stripProfilFoto(user) {
+  if (!user || typeof user !== "object") return user;
+  const { profilFoto, ...rest } = user;
+  return rest;
+}
+
+function ensureCalismaSaati(user) {
+  const u = { ...user };
+  const cs = String(u.calismaSaati || "").trim();
+  if (!cs) u.calismaSaati = DEFAULT_CALISMA_SAATI;
+  return u;
+}
+
+function userForDisk(user) {
+  return ensureCalismaSaati(stripProfilFoto(user));
+}
+
+function usersForDisk(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(userForDisk);
 }
 
 function safeHandle(channel, handler) {
@@ -91,8 +120,10 @@ function registerIpcHandlers() {
       if (!Array.isArray(nextUsers)) {
         return { ok: false, error: "Geçersiz kullanıcı listesi." };
       }
-      writeJsonFile(usersPath, nextUsers);
-      return { ok: true, path: usersPath, count: nextUsers.length };
+      const toWrite = usersForDisk(nextUsers);
+      writeJsonFile(usersPath, toWrite);
+      broadcastUsersToRenderers();
+      return { ok: true, path: usersPath, count: toWrite.length };
     } catch (error) {
       return { ok: false, error: error?.message || "Kullanıcılar kaydedilemedi." };
     }
@@ -113,15 +144,17 @@ function registerIpcHandlers() {
       if (exists) {
         return { ok: false, error: "Bu e-posta zaten kayıtlı." };
       }
-      const nextUser = {
+      let nextUser = {
         ...newUser,
         email,
         ad_soyad: String(newUser?.ad_soyad || `${newUser?.ad || ""} ${newUser?.soyad || ""}`.trim() || "-")
       };
       delete nextUser.ad;
       delete nextUser.soyad;
+      nextUser = userForDisk(nextUser);
       users.push(nextUser);
       writeJsonFile(usersPath, users);
+      broadcastUsersToRenderers();
       return { ok: true, user: nextUser, path: usersPath, count: users.length };
     } catch (error) {
       return { ok: false, error: error?.message || "Kullanıcı eklenemedi." };
@@ -136,7 +169,7 @@ function registerIpcHandlers() {
       const exists = users.some((item) => String(item?.email || "").toLowerCase() === email);
       if (exists) return { ok: false, error: "Bu e-posta zaten kayıtlı." };
 
-      const nextUser = {
+      let nextUser = {
         id: String(payload?.id || Date.now()),
         ad_soyad: String(payload?.ad_soyad || `${payload?.ad || ""} ${payload?.soyad || ""}`.trim() || "-"),
         email,
@@ -144,14 +177,15 @@ function registerIpcHandlers() {
         rol: String(payload?.rol || "STAJYER"),
         departman: String(payload?.departman || "Genel"),
         sirketUnvan: String(payload?.sirketUnvan || "Stajyer"),
-        telefon: String(payload?.telefon || "***"),
-        profilFoto: payload?.profilFoto || null
+        telefon: String(payload?.telefon || "***")
       };
       delete nextUser.ad;
       delete nextUser.soyad;
+      nextUser = userForDisk(nextUser);
 
       const nextUsers = [...users, nextUser];
       writeJsonFile(usersPath, nextUsers);
+      broadcastUsersToRenderers();
       const verifyUsers = parseJsonFile(usersPath, []);
       const persisted = verifyUsers.some((item) => String(item?.email || "").toLowerCase() === email);
       if (!persisted) return { ok: false, error: "Kullanıcı dosyaya yazılamadı." };
@@ -173,15 +207,17 @@ function registerIpcHandlers() {
       if (exists) {
         return { ok: false, error: "Bu e-posta zaten kayıtlı." };
       }
-      const nextUser = {
+      let nextUser = {
         ...payload,
         email,
         ad_soyad: String(payload?.ad_soyad || `${payload?.ad || ""} ${payload?.soyad || ""}`.trim() || "-")
       };
       delete nextUser.ad;
       delete nextUser.soyad;
+      nextUser = userForDisk(nextUser);
       users.push(nextUser);
       writeJsonFile(usersPath, users);
+      broadcastUsersToRenderers();
       return { ok: true, user: nextUser, path: usersPath, count: users.length };
     } catch (error) {
       return { ok: false, error: error?.message || "Kayıt sırasında hata oluştu." };
@@ -191,7 +227,8 @@ function registerIpcHandlers() {
   safeHandle("users:delete", (_event, userId) => {
     const users = parseJsonFile(usersPath, []);
     const nextUsers = users.filter((item) => String(item?.id ?? "") !== String(userId ?? ""));
-    writeJsonFile(usersPath, nextUsers);
+    writeJsonFile(usersPath, usersForDisk(nextUsers));
+    broadcastUsersToRenderers();
     return { ok: true };
   });
 
@@ -219,8 +256,104 @@ function registerIpcHandlers() {
 
   safeHandle("messages:save", (_event, messages) => {
     writeJsonFile(messagesPath, messages);
+    broadcastMessagesToRenderers();
     return { ok: true };
   });
+
+  safeHandle("userPhotos:list", () => parseJsonFile(userPhotosPath, []));
+
+  safeHandle("userPhotos:save", (_event, photos) => {
+    try {
+      if (!Array.isArray(photos)) {
+        return { ok: false, error: "Geçersiz avatar listesi." };
+      }
+      const cleaned = photos
+        .map((p) => ({
+          userId: String(p?.userId ?? "").trim(),
+          avatar: String(p?.avatar ?? "").trim()
+        }))
+        .filter((p) => p.userId);
+      writeJsonFile(userPhotosPath, cleaned);
+      broadcastUserPhotosToRenderers();
+      return { ok: true, count: cleaned.length };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Avatarlar kaydedilemedi." };
+    }
+  });
+}
+
+/** Tüm pencerelere güncel mesaj listesini ilet (çoklu pencere / dosya dışı değişiklik). */
+function broadcastMessagesToRenderers() {
+  const data = parseJsonFile(messagesPath, []);
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    try {
+      win.webContents.send("messages:updated", data);
+    } catch (_e) {
+      /* pencere kapanıyor olabilir */
+    }
+  }
+}
+
+function broadcastUsersToRenderers() {
+  const data = parseJsonFile(usersPath, []);
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    try {
+      win.webContents.send("users:updated", data);
+    } catch (_e) {
+      /* pencere kapanıyor olabilir */
+    }
+  }
+}
+
+function broadcastUserPhotosToRenderers() {
+  const data = parseJsonFile(userPhotosPath, []);
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    try {
+      win.webContents.send("userPhotos:updated", data);
+    } catch (_e) {
+      /* pencere kapanıyor olabilir */
+    }
+  }
+}
+
+let messagesWatchTimer = null;
+let usersWatchTimer = null;
+let userPhotosWatchTimer = null;
+
+function startMessagesFileWatcher() {
+  try {
+    fs.watch(messagesPath, { persistent: true }, () => {
+      clearTimeout(messagesWatchTimer);
+      messagesWatchTimer = setTimeout(broadcastMessagesToRenderers, 120);
+    });
+  } catch (_e) {
+    /* izleme isteğe bağlı */
+  }
+}
+
+function startUsersFileWatcher() {
+  try {
+    fs.watch(usersPath, { persistent: true }, () => {
+      clearTimeout(usersWatchTimer);
+      usersWatchTimer = setTimeout(broadcastUsersToRenderers, 120);
+    });
+  } catch (_e) {
+    /* izleme isteğe bağlı */
+  }
+}
+
+function startUserPhotosFileWatcher() {
+  try {
+    fs.watch(userPhotosPath, { persistent: true }, () => {
+      clearTimeout(userPhotosWatchTimer);
+      userPhotosWatchTimer = setTimeout(broadcastUserPhotosToRenderers, 120);
+    });
+  } catch (_e) {
+    /* izleme isteğe bağlı */
+  }
 }
 
 function createWindow() {
@@ -243,6 +376,9 @@ function createWindow() {
 app.whenReady().then(() => {
   ensureDataFiles();
   registerIpcHandlers();
+  startMessagesFileWatcher();
+  startUsersFileWatcher();
+  startUserPhotosFileWatcher();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

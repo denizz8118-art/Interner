@@ -17,7 +17,6 @@ const cancelUserCreate = document.getElementById("cancelUserCreate");
 const userCreateForm = document.getElementById("userCreateForm");
 const userCreateError = document.getElementById("userCreateError");
 const userEditModal = document.getElementById("userEditModal");
-const closeUserEditModal = document.getElementById("closeUserEditModal");
 const cancelUserEdit = document.getElementById("cancelUserEdit");
 const userEditForm = document.getElementById("userEditForm");
 const userDeleteModal = document.getElementById("userDeleteModal");
@@ -35,6 +34,10 @@ let requests = [];
 let tasks = [];
 let messages = [];
 let users = [];
+/** Profil görselleri users.json dışında (data/user_photos.json). */
+let userPhotos = [];
+/** Geçerli shell görünümü (gerçek zamanlı mesaj yenilemesi için). */
+let activeViewKey = "";
 let activeTaskFilter = "Devam Eden";
 let activeUsersRoleFilter = "ALL";
 let activeUsersPage = 1;
@@ -147,17 +150,89 @@ function sortRequestsQueuedFirst(list) {
   return [...queued, ...rest];
 }
 
+const DEFAULT_CALISMA_SAATI = "09:00 - 18:00";
+
+function replaceMessagesInPlace(next) {
+  const arr = Array.isArray(next) ? next : [];
+  messages.splice(0, messages.length, ...arr);
+}
+
+function replaceUserPhotosInPlace(next) {
+  const arr = Array.isArray(next) ? next : [];
+  userPhotos.splice(0, userPhotos.length, ...arr);
+}
+
+function getUserPhotoById(userId) {
+  const id = String(userId ?? "");
+  const rec = userPhotos.find((p) => String(p.userId) === id);
+  return rec?.avatar ? String(rec.avatar) : "";
+}
+
+/** Mesajlar sayfası güncel users/currentUser/avatar ile çizsin (IPC sonrası). */
+function syncChatBridgeContext() {
+  window.__chatUsers = users;
+  window.__chatCurrentUser = currentUser;
+  window.__chatGetUserPhotoById = (id) => getUserPhotoById(id);
+}
+
+function hydrateCurrentUserFromStores() {
+  if (!currentUser?.id) return;
+  const ph = getUserPhotoById(currentUser.id);
+  if (ph) currentUser.profilFoto = ph;
+  currentUser = normalizeUser(currentUser);
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  renderSidebarAvatar(currentUser);
+}
+
+async function persistCurrentUserAvatarToStore() {
+  const id = String(currentUser?.id ?? "");
+  if (!id) return;
+  const avatar = String(currentUser?.profilFoto || "").trim();
+  const filtered = userPhotos.filter((p) => String(p.userId) !== id);
+  if (avatar) filtered.push({ userId: id, avatar });
+  const result = await window.api.saveUserPhotos(filtered);
+  if (!result?.ok) throw new Error(result?.error || "Avatar kaydedilemedi.");
+  replaceUserPhotosInPlace(filtered);
+}
+
 async function loadData() {
-  [users, requests, tasks, messages] = await Promise.all([
+  const [u, r, t, m, p] = await Promise.all([
     window.api.listUsers(),
     window.api.listRequests(),
     window.api.listTasks(),
-    window.api.listMessages()
+    window.api.listMessages(),
+    window.api.listUserPhotos()
   ]);
-  const migrationNeeded = users.some((u) => !u.ad_soyad || "ad" in u || "soyad" in u);
+  users = u;
+  requests = r;
+  tasks = t;
+  replaceMessagesInPlace(m);
+  replaceUserPhotosInPlace(p);
+  hydrateCurrentUserFromStores();
+  const migrationNeeded = users.some((u) => {
+    const noAd = !u.ad_soyad || "ad" in u || "soyad" in u;
+    const noHours = !u.calismaSaati || !String(u.calismaSaati).trim();
+    const hasPhotoOnDisk = "profilFoto" in u && u.profilFoto != null;
+    return noAd || noHours || hasPhotoOnDisk;
+  });
   if (migrationNeeded) {
-    users = users.map(normalizeUser);
+    users = users.map((u) => {
+      const { profilFoto, ...rest } = u || {};
+      return normalizeUser({
+        ...rest,
+        calismaSaati: rest.calismaSaati && String(rest.calismaSaati).trim() ? rest.calismaSaati : DEFAULT_CALISMA_SAATI
+      });
+    });
     await persistUsersOrThrow(users);
+  }
+  if (currentUser?.id && String(currentUser.profilFoto || "").trim() && !getUserPhotoById(currentUser.id)) {
+    try {
+      await persistCurrentUserAvatarToStore();
+      hydrateCurrentUserFromStores();
+      syncChatBridgeContext();
+    } catch (_e) {
+      /* avatar dosyaya yazılamazsa yerel önizleme kalır */
+    }
   }
 }
 
@@ -177,6 +252,8 @@ function ensureSession() {
 }
 
 async function loadView(viewKey) {
+  activeViewKey = viewKey;
+  window.__messagesPageRefresh = null;
   const html = await fetch(`./pages/${viewKey}.html`).then((r) => r.text());
   viewRoot.innerHTML = html;
   viewRoot.classList.toggle("messages-view", viewKey === "mesajlar");
@@ -189,9 +266,15 @@ async function loadView(viewKey) {
   if (viewKey === "kullanicilar") renderUsers();
   if (viewKey === "profil") renderProfile();
   if (viewKey === "mesajlar" && typeof window.initMessagesPage === "function") {
+    syncChatBridgeContext();
     window.initMessagesPage({
       messages,
-      setMessages: (next) => (messages = next),
+      users,
+      currentUser,
+      getUserFullName,
+      getRoleLabel,
+      getUserPhotoById,
+      setMessages: replaceMessagesInPlace,
       saveMessages: (next) => window.api.saveMessages(next)
     });
   }
@@ -596,18 +679,6 @@ function closeUserCreateModalFn() {
   if (userCreateError) userCreateError.textContent = "";
 }
 
-function refreshUserEditRoleLabel() {
-  const label = document.getElementById("userEditRoleLabel");
-  if (label) label.textContent = getRoleLabel(selectedEditRole);
-}
-
-function changeUserEditRole(step) {
-  const idx = ROLE_ORDER.indexOf(selectedEditRole);
-  const next = (Math.max(0, idx) + step + ROLE_ORDER.length) % ROLE_ORDER.length;
-  selectedEditRole = ROLE_ORDER[next];
-  refreshUserEditRoleLabel();
-}
-
 function refreshUserEditWorkHoursLabel() {
   const start = document.getElementById("userEditStartHourLabel");
   const end = document.getElementById("userEditEndHourLabel");
@@ -630,20 +701,37 @@ function openUserEditModal(user) {
   selectedEditUserId = String(user.id || "");
   selectedEditRole = String(user.rol || "STAJYER").toUpperCase();
   if (!ROLE_ORDER.includes(selectedEditRole)) selectedEditRole = "STAJYER";
-  const fullNameInput = document.getElementById("userEditFullName");
-  const deptInput = document.getElementById("userEditDepartment");
+  const nameTopEl = document.getElementById("userEditNameTop");
+  const descEl = document.getElementById("userEditDescription");
+  const deptSelect = document.getElementById("userEditDepartment");
+  const roleSelect = document.getElementById("userEditRole");
   const avatarEl = document.getElementById("userEditAvatar");
-  const namePreviewEl = document.getElementById("userEditNamePreview");
   const editError = document.getElementById("userEditError");
   const match = String(user.calismaSaati || "09:00 - 18:00").match(/(\d{1,2}):\d{2}\s*-\s*(\d{1,2}):\d{2}/);
   selectedEditStartHour = match ? Number(match[1]) : 9;
   selectedEditEndHour = match ? Number(match[2]) : 18;
-  if (fullNameInput) fullNameInput.value = getUserFullName(user);
-  if (deptInput) deptInput.value = String(user.departman || "");
-  if (avatarEl) avatarEl.innerHTML = user?.profilFoto ? `<img src="${user.profilFoto}" alt="${getUserFullName(user)}" />` : getUserInitials(user);
-  if (namePreviewEl) namePreviewEl.textContent = getUserFullName(user);
+  const fullName = getUserFullName(user);
+  if (nameTopEl) nameTopEl.textContent = fullName;
+  if (descEl) {
+    descEl.textContent = `${fullName} için departman, rol ve çalışma saatini güncelleyebilirsiniz.`;
+  }
+  if (deptSelect) {
+    const dept = String(user.departman || "").trim();
+    let hasOption = [...deptSelect.options].some((o) => o.value === dept);
+    if (dept && !hasOption) {
+      const opt = document.createElement("option");
+      opt.value = dept;
+      opt.textContent = dept;
+      deptSelect.insertBefore(opt, deptSelect.firstChild);
+      hasOption = true;
+    }
+    deptSelect.value = dept || deptSelect.options[0]?.value || "";
+  }
+  if (roleSelect) {
+    roleSelect.value = ROLE_ORDER.includes(selectedEditRole) ? selectedEditRole : "STAJYER";
+  }
+  if (avatarEl) avatarEl.innerHTML = user?.profilFoto ? `<img src="${user.profilFoto}" alt="${fullName}" />` : getUserInitials(user);
   if (editError) editError.textContent = "";
-  refreshUserEditRoleLabel();
   refreshUserEditWorkHoursLabel();
   userEditModal.classList.remove("hidden");
 }
@@ -664,21 +752,22 @@ async function handleUserEditSubmit(event) {
   event.preventDefault();
   const editError = document.getElementById("userEditError");
   if (editError) editError.textContent = "";
-  const fullNameInput = document.getElementById("userEditFullName");
-  const deptInput = document.getElementById("userEditDepartment");
-  const nextName = String(fullNameInput?.value || "").trim().replace(/\s+/g, " ");
-  const nextDept = String(deptInput?.value || "").trim();
-  if (!nextName || !nextDept) return editError && (editError.textContent = "Ad soyad ve departman zorunludur.");
+  const deptSelect = document.getElementById("userEditDepartment");
+  const roleSelect = document.getElementById("userEditRole");
+  const nextDept = String(deptSelect?.value || "").trim();
+  const nextRole = String(roleSelect?.value || "STAJYER").toUpperCase();
+  if (!nextDept) return editError && (editError.textContent = "Departman seçilmelidir.");
   if (selectedEditStartHour === selectedEditEndHour) return editError && (editError.textContent = "Baslangic ve bitis saati ayni olamaz.");
   const existing = users.find((u) => String(u.id || "") === selectedEditUserId);
   if (!existing) return;
+  const nextName = getUserFullName(existing);
   const updated = normalizeUser({
     ...existing,
     ad_soyad: nextName,
     departman: nextDept,
     calismaSaati: `${String(selectedEditStartHour).padStart(2, "0")}:00 - ${String(selectedEditEndHour).padStart(2, "0")}:00`,
-    rol: selectedEditRole,
-    sirketUnvan: ROLE_TITLE_MAP[selectedEditRole] || selectedEditRole
+    rol: nextRole,
+    sirketUnvan: ROLE_TITLE_MAP[nextRole] || nextRole
   });
   users = users.map((u) => (String(u.id || "") === selectedEditUserId ? updated : normalizeUser(u)));
   try {
@@ -863,12 +952,14 @@ function renderProfile() {
   const setEmailError = (msg) => emailError && (emailError.textContent = msg || "");
 
   const syncUserSave = async () => {
-    users = users.map((u) => (isSameUser(u, currentUser) ? normalizeUser({ ...u, ...currentUser }) : normalizeUser(u)));
+    const { profilFoto: _dropPhoto, ...cuForDisk } = currentUser;
+    users = users.map((u) => (isSameUser(u, currentUser) ? normalizeUser({ ...u, ...cuForDisk }) : normalizeUser(u)));
     await persistUsersOrThrow(users);
     users = (await window.api.listUsers()).map(normalizeUser);
     const latest = users.find((u) => isSameUser(u, currentUser));
     if (latest) {
       currentUser = normalizeUser(latest);
+      hydrateCurrentUserFromStores();
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
     }
   };
@@ -1144,6 +1235,8 @@ function renderProfile() {
       currentUser.profilFoto = canvas.toDataURL("image/png");
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
       try {
+        await persistCurrentUserAvatarToStore();
+        syncChatBridgeContext();
         await syncUserSave();
         renderAvatar();
         renderSidebarAvatar(currentUser);
@@ -1251,18 +1344,12 @@ function bindShellEvents() {
   if (userCreateModal) userCreateModal.addEventListener("click", (e) => e.target === userCreateModal && closeUserCreateModalFn());
   if (userCreateForm) userCreateForm.addEventListener("submit", handleCreateUser);
 
-  if (closeUserEditModal) closeUserEditModal.addEventListener("click", closeUserEditModalFn);
   if (cancelUserEdit) cancelUserEdit.addEventListener("click", closeUserEditModalFn);
-  if (userEditModal) userEditModal.addEventListener("click", (e) => e.target === userEditModal && closeUserEditModalFn());
   if (userEditForm) userEditForm.addEventListener("submit", handleUserEditSubmit);
-  const rolePrev = document.getElementById("userEditRolePrev");
-  const roleNext = document.getElementById("userEditRoleNext");
   const startUp = document.getElementById("userEditStartUp");
   const startDown = document.getElementById("userEditStartDown");
   const endUp = document.getElementById("userEditEndUp");
   const endDown = document.getElementById("userEditEndDown");
-  if (rolePrev) rolePrev.addEventListener("click", () => changeUserEditRole(-1));
-  if (roleNext) roleNext.addEventListener("click", () => changeUserEditRole(1));
   if (startUp) startUp.addEventListener("click", () => changeUserEditWorkHours("start", 1));
   if (startDown) startDown.addEventListener("click", () => changeUserEditWorkHours("start", -1));
   if (endUp) endUp.addEventListener("click", () => changeUserEditWorkHours("end", 1));
@@ -1289,6 +1376,49 @@ function bindShellEvents() {
 async function init() {
   if (!ensureSession()) return;
   await loadData();
+  syncChatBridgeContext();
+  if (typeof window.api.onMessagesUpdated === "function") {
+    window.api.onMessagesUpdated((next) => {
+      replaceMessagesInPlace(next);
+      syncChatBridgeContext();
+      if (activeViewKey === "mesajlar" && typeof window.__messagesPageRefresh === "function") {
+        window.__messagesPageRefresh();
+      }
+    });
+  }
+  if (typeof window.api.onUsersUpdated === "function") {
+    window.api.onUsersUpdated((next) => {
+      const arr = Array.isArray(next) ? next : [];
+      users.splice(0, users.length, ...arr.map(normalizeUser));
+      const latest = users.find((u) => isSameUser(u, currentUser));
+      if (latest) {
+        currentUser = normalizeUser(latest);
+        hydrateCurrentUserFromStores();
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        const nameEl = document.getElementById("sidebarUserName");
+        const roleEl = document.getElementById("sidebarUserRole");
+        const deptEl = document.getElementById("sidebarUserDept");
+        if (nameEl) nameEl.textContent = getUserFullName(currentUser);
+        if (roleEl) roleEl.textContent = String(currentUser.sirketUnvan || currentUser.rol || "Kullanici").toUpperCase();
+        if (deptEl) deptEl.textContent = currentUser.departman || "-";
+      }
+      syncChatBridgeContext();
+      if (activeViewKey === "mesajlar" && typeof window.__messagesPageRefresh === "function") {
+        window.__messagesPageRefresh();
+      }
+      if (activeViewKey === "kullanicilar") renderUsers();
+    });
+  }
+  if (typeof window.api.onUserPhotosUpdated === "function") {
+    window.api.onUserPhotosUpdated((next) => {
+      replaceUserPhotosInPlace(next);
+      hydrateCurrentUserFromStores();
+      syncChatBridgeContext();
+      if (activeViewKey === "mesajlar" && typeof window.__messagesPageRefresh === "function") {
+        window.__messagesPageRefresh();
+      }
+    });
+  }
   bindShellEvents();
   const savedView = localStorage.getItem(LAST_ACTIVE_VIEW_KEY);
   const validView = navLinks.some((btn) => btn.dataset.view === savedView);
