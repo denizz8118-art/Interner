@@ -36,6 +36,7 @@ let messages = [];
 let users = [];
 /** Profil görselleri users.json dışında (data/user_photos.json). */
 let userPhotos = [];
+let departmentNames = [];
 /** Geçerli shell görünümü (gerçek zamanlı mesaj yenilemesi için). */
 let activeViewKey = "";
 let activeTaskFilter = "Devam Eden";
@@ -49,10 +50,30 @@ let selectedEditRole = "STAJYER";
 let selectedEditStartHour = 9;
 let selectedEditEndHour = 18;
 let selectedCloseRequestId = "";
+let selectedQueueRequestId = "";
+let selectedRejectRequestId = "";
+const DEPT_EXPANDED_KEY = "deptExpanded";
+const DEFAULT_DEPARTMENTS = [
+  "Yazılım Geliştirme",
+  "Yazılım",
+  "Ürün Tasarımı",
+  "Pazarlama",
+  "Veri Analizi",
+  "Yönetim",
+  "Genel"
+];
+let taskSelectedAssigneeIds = new Set();
+let taskAttachedFiles = [];
+let activeTaskFlowTask = null;
+let taskCompleteFiles = [];
+let postponeDatePickerBound = false;
+let postponeDatePickerState = { year: 0, month: 0 };
 
-const ROLE_ORDER = ["STAJYER", "LEADER", "ADMIN", "MANAGER"];
-const ROLE_LABEL_MAP = { MANAGER: "MUDUR", LEADER: "LIDER", ADMIN: "ADMIN", STAJYER: "STAJYER" };
-const ROLE_TITLE_MAP = { MANAGER: "Genel Mudur", LEADER: "Takim Lideri", ADMIN: "Admin", STAJYER: "Stajyer" };
+const ROLE_ORDER = ["STAJYER", "DEV", "LEADER", "ADMIN", "MANAGER"];
+const ROLE_LABEL_MAP = { MANAGER: "Müdür", LEADER: "Lider", ADMIN: "Personel", STAJYER: "Stajyer", DEV: ".dev" };
+const ROLE_TITLE_MAP = { MANAGER: "Müdür", LEADER: "Takım Lideri", ADMIN: "Personel", STAJYER: "Stajyer", DEV: "Developer" };
+const STAJYER_HIDDEN_VIEWS = new Set(["kullanicilar", "stajyerlerim", "erisim-ayarlari"]);
+const ACCENT_PRESETS = ["#6c63ff", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
 
 function getUserFullName(user) {
   const single = String(user?.ad_soyad || "").trim();
@@ -88,6 +109,36 @@ async function persistUsersOrThrow(nextUsers) {
 function getRoleLabel(role) {
   const key = String(role || "").toUpperCase();
   return ROLE_LABEL_MAP[key] || key || "STAJYER";
+}
+
+function getSidebarRoleText(user) {
+  const key = String(user?.rol || "").toUpperCase();
+  return getRoleLabel(key) || "Kullanıcı";
+}
+
+function isStajyerRole(user = currentUser) {
+  return String(user?.rol || "").toUpperCase() === "STAJYER";
+}
+
+function canAccessStaffFeatures(user = currentUser) {
+  return !isStajyerRole(user);
+}
+
+function applyRoleBasedNav() {
+  const staff = canAccessStaffFeatures();
+  document.querySelectorAll(".nav-link[data-requires-role='staff'], .nav-link[data-view='kullanicilar'], .nav-link[data-view='stajyerlerim'], .nav-link[data-action='open-task-create']").forEach((btn) => {
+    btn.classList.toggle("nav-link-hidden", !staff);
+  });
+}
+
+function updateSidebarUserMeta() {
+  const nameEl = document.getElementById("sidebarUserName");
+  const roleEl = document.getElementById("sidebarUserRole");
+  const deptEl = document.getElementById("sidebarUserDept");
+  if (nameEl) nameEl.textContent = getUserFullName(currentUser);
+  if (roleEl) roleEl.textContent = getSidebarRoleText(currentUser);
+  if (deptEl) deptEl.textContent = currentUser?.departman || "-";
+  renderSidebarAvatar(currentUser);
 }
 
 function renderSidebarAvatar(user) {
@@ -147,7 +198,240 @@ function sortRequestsQueuedFirst(list) {
     if (item?.status === "Bekletildi") queued.push(item);
     else rest.push(item);
   }
+  queued.sort((a, b) => Number(b.queuedAt || 0) - Number(a.queuedAt || 0));
   return [...queued, ...rest];
+}
+
+function applyThemeFromStorage() {
+  const theme = localStorage.getItem("appTheme") || "dark";
+  document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
+  const accent = localStorage.getItem("appAccent") || ACCENT_PRESETS[0];
+  document.documentElement.style.setProperty("--primary", accent);
+  document.documentElement.style.setProperty("--accent", accent);
+  const r = parseInt(accent.slice(1, 3), 16);
+  const g = parseInt(accent.slice(3, 5), 16);
+  const b = parseInt(accent.slice(5, 7), 16);
+  if (!Number.isNaN(r)) {
+    document.documentElement.style.setProperty("--primary-soft", `rgba(${r}, ${g}, ${b}, 0.18)`);
+  }
+  document.querySelectorAll(".profile-v2-color").forEach((el, i) => {
+    const hex = el.dataset.accent || ACCENT_PRESETS[i] || ACCENT_PRESETS[0];
+    el.classList.toggle("active", hex.toLowerCase() === accent.toLowerCase());
+  });
+  const toggle = document.querySelector(".profile-v2-toggle");
+  if (toggle) toggle.classList.toggle("is-on", theme !== "light");
+}
+
+function bindProfileCustomization() {
+  const toggle = document.querySelector(".profile-v2-toggle");
+  if (toggle && !toggle.dataset.bound) {
+    toggle.dataset.bound = "1";
+    toggle.addEventListener("click", () => {
+      const isLight = localStorage.getItem("appTheme") === "light";
+      localStorage.setItem("appTheme", isLight ? "dark" : "light");
+      applyThemeFromStorage();
+    });
+  }
+  document.querySelectorAll(".profile-v2-color").forEach((el, i) => {
+    const hex = ACCENT_PRESETS[i] || ACCENT_PRESETS[0];
+    el.dataset.accent = hex;
+    if (el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener("click", () => {
+      localStorage.setItem("appAccent", hex);
+      applyThemeFromStorage();
+    });
+  });
+}
+
+function isTaskAssigneeRole(user) {
+  const r = String(user?.rol || "").toUpperCase();
+  return r === "STAJYER" || r === "DEV";
+}
+
+function getDeptExpandedSet() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DEPT_EXPANDED_KEY) || "[]");
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDeptExpandedSet(set) {
+  localStorage.setItem(DEPT_EXPANDED_KEY, JSON.stringify([...set]));
+}
+
+function getAllDepartmentNames() {
+  const fromUsers = users.map((u) => String(u.departman || "").trim()).filter(Boolean);
+  const all = new Set([...DEFAULT_DEPARTMENTS, ...departmentNames, ...fromUsers]);
+  return [...all].sort((a, b) => a.localeCompare(b, "tr"));
+}
+
+function populateDepartmentSelects(preferredValue = "") {
+  const names = getAllDepartmentNames();
+  const fill = (selectEl, includeEmpty) => {
+    if (!selectEl) return;
+    const prev = preferredValue || selectEl.value;
+    selectEl.innerHTML =
+      (includeEmpty ? '<option value="">Departman Seçiniz</option>' : "") +
+      names.map((n) => `<option value="${escapeHtmlAttr(n)}">${escapeHtmlAttr(n)}</option>`).join("");
+    if (prev && names.includes(prev)) selectEl.value = prev;
+  };
+  fill(document.getElementById("newUserDepartment"), true);
+  fill(document.getElementById("userEditDepartment"), false);
+}
+
+function escapeHtmlAttr(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+let taskDatePickerState = { year: 0, month: 0, bound: false };
+
+function formatTaskDateLabel(iso) {
+  if (!iso) return "Tarih seçin";
+  try {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function closeTaskDatePopover() {
+  const pop = document.getElementById("taskDatePopover");
+  if (pop) pop.classList.add("hidden");
+}
+
+function renderTaskDatePopover() {
+  const pop = document.getElementById("taskDatePopover");
+  const hidden = document.getElementById("taskDueDate");
+  if (!pop) return;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (!taskDatePickerState.year) {
+    taskDatePickerState.year = today.getFullYear();
+    taskDatePickerState.month = today.getMonth();
+  }
+  const { year, month } = taskDatePickerState;
+  const first = new Date(year, month, 1);
+  const startPad = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = first.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  const selected = hidden?.value || "";
+  const weekdays = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
+  let cells = "";
+  for (let i = 0; i < startPad; i++) cells += '<span class="task-date-day empty"></span>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dt = new Date(year, month, day);
+    const disabled = dt < today;
+    const isSel = selected === iso;
+    cells += `<button type="button" class="task-date-day ${disabled ? "disabled" : ""} ${isSel ? "selected" : ""}" data-iso="${iso}" ${disabled ? "disabled" : ""}>${day}</button>`;
+  }
+  pop.innerHTML = `
+    <div class="task-date-pop-head">
+      <button type="button" class="task-date-nav" data-nav="-1" aria-label="Önceki ay">‹</button>
+      <strong>${monthLabel}</strong>
+      <button type="button" class="task-date-nav" data-nav="1" aria-label="Sonraki ay">›</button>
+    </div>
+    <div class="task-date-weekdays">${weekdays.map((w) => `<span>${w}</span>`).join("")}</div>
+    <div class="task-date-grid">${cells}</div>
+    <button type="button" class="task-date-clear btn-ghost">Tarihi temizle</button>
+  `;
+  pop.querySelectorAll("[data-nav]").forEach((btn) => {
+    btn.onclick = () => {
+      const delta = Number(btn.getAttribute("data-nav"));
+      taskDatePickerState.month += delta;
+      if (taskDatePickerState.month > 11) {
+        taskDatePickerState.month = 0;
+        taskDatePickerState.year += 1;
+      } else if (taskDatePickerState.month < 0) {
+        taskDatePickerState.month = 11;
+        taskDatePickerState.year -= 1;
+      }
+      renderTaskDatePopover();
+    };
+  });
+  pop.querySelectorAll(".task-date-day:not(.disabled):not(.empty)").forEach((btn) => {
+    btn.onclick = () => {
+      const iso = btn.getAttribute("data-iso");
+      if (hidden) hidden.value = iso;
+      const label = document.getElementById("taskDueDateLabel");
+      if (label) label.textContent = formatTaskDateLabel(iso);
+      closeTaskDatePopover();
+    };
+  });
+  const clearBtn = pop.querySelector(".task-date-clear");
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      if (hidden) hidden.value = "";
+      const label = document.getElementById("taskDueDateLabel");
+      if (label) label.textContent = "Tarih seçin";
+      closeTaskDatePopover();
+    };
+  }
+}
+
+function initTaskDatePicker() {
+  const btn = document.getElementById("taskDueDateBtn");
+  const pop = document.getElementById("taskDatePopover");
+  if (!btn || !pop) return;
+  if (!taskDatePickerState.bound) {
+    taskDatePickerState.bound = true;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = pop.classList.contains("hidden");
+      if (open) {
+        const today = new Date();
+        taskDatePickerState.year = today.getFullYear();
+        taskDatePickerState.month = today.getMonth();
+        renderTaskDatePopover();
+        pop.classList.remove("hidden");
+      } else {
+        closeTaskDatePopover();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      if (!pop.classList.contains("hidden") && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        closeTaskDatePopover();
+      }
+    });
+  }
+}
+
+function resetTaskDatePicker() {
+  const hidden = document.getElementById("taskDueDate");
+  const label = document.getElementById("taskDueDateLabel");
+  if (hidden) hidden.value = "";
+  if (label) label.textContent = "Tarih seçin";
+  closeTaskDatePopover();
+}
+
+async function openMessagesWithUser(user) {
+  if (!user) return;
+  const targetId = String(user.id);
+  window.__pendingOpenChatUserId = targetId;
+  const mesajBtn = navLinks.find((b) => b.dataset.view === "mesajlar");
+  if (activeViewKey !== "mesajlar") {
+    if (mesajBtn) {
+      navLinks.forEach((item) => item.classList.remove("active"));
+      mesajBtn.classList.add("active");
+      localStorage.setItem(LAST_ACTIVE_VIEW_KEY, "mesajlar");
+    }
+    await loadView("mesajlar");
+  }
+  if (typeof window.__openChatWithUserId === "function") {
+    await window.__openChatWithUserId(targetId);
+    window.__pendingOpenChatUserId = "";
+  }
 }
 
 const DEFAULT_CALISMA_SAATI = "09:00 - 18:00";
@@ -196,19 +480,23 @@ async function persistCurrentUserAvatarToStore() {
 }
 
 async function loadData() {
-  const [u, r, t, m, p] = await Promise.all([
+  const [u, r, t, m, p, d] = await Promise.all([
     window.api.listUsers(),
     window.api.listRequests(),
     window.api.listTasks(),
     window.api.listMessages(),
-    window.api.listUserPhotos()
+    window.api.listUserPhotos(),
+    window.api.listDepartments()
   ]);
   users = u;
   requests = r;
   tasks = t;
   replaceMessagesInPlace(m);
   replaceUserPhotosInPlace(p);
+  departmentNames = Array.isArray(d) ? d.map((x) => String(x).trim()).filter(Boolean) : [];
+  populateDepartmentSelects();
   hydrateCurrentUserFromStores();
+  applyThemeFromStorage();
   const migrationNeeded = users.some((u) => {
     const noAd = !u.ad_soyad || "ad" in u || "soyad" in u;
     const noHours = !u.calismaSaati || !String(u.calismaSaati).trim();
@@ -244,16 +532,18 @@ function ensureSession() {
   }
   currentUser = normalizeUser(currentUser);
   localStorage.setItem("currentUser", JSON.stringify(currentUser));
-  document.getElementById("sidebarUserName").textContent = getUserFullName(currentUser);
-  document.getElementById("sidebarUserRole").textContent = String(currentUser.sirketUnvan || currentUser.rol || "Kullanici").toUpperCase();
-  document.getElementById("sidebarUserDept").textContent = currentUser.departman || "-";
-  renderSidebarAvatar(currentUser);
+  updateSidebarUserMeta();
+  applyRoleBasedNav();
   return true;
 }
 
 async function loadView(viewKey) {
+  if (isStajyerRole() && (STAJYER_HIDDEN_VIEWS.has(viewKey) || viewKey === "gorev-olustur")) {
+    viewKey = "gorevlerim";
+  }
   activeViewKey = viewKey;
   window.__messagesPageRefresh = null;
+  window.__openChatWithUserId = null;
   const html = await fetch(`./pages/${viewKey}.html`).then((r) => r.text());
   viewRoot.innerHTML = html;
   viewRoot.classList.toggle("messages-view", viewKey === "mesajlar");
@@ -277,23 +567,74 @@ async function loadView(viewKey) {
       setMessages: replaceMessagesInPlace,
       saveMessages: (next) => window.api.saveMessages(next)
     });
+    if (window.__pendingOpenChatUserId && typeof window.__openChatWithUserId === "function") {
+      const pendingId = window.__pendingOpenChatUserId;
+      window.__pendingOpenChatUserId = "";
+      await window.__openChatWithUserId(pendingId);
+    }
   }
+}
+
+function getIncomingRequestsForUser() {
+  const uid = String(currentUser?.id ?? "");
+  if (!canAccessStaffFeatures()) return [];
+  return requests.filter((r) => {
+    const assignerId = String(r.assignerId || "");
+    if (assignerId) return assignerId === uid;
+    return String(r.senderId || "") !== uid;
+  });
+}
+
+function resolveTaskAssigner(task) {
+  const owner = findUserBySender(task.senderId, task.sender);
+  return {
+    id: String(task.senderId || owner?.id || ""),
+    name: task.sender || getUserFullName(owner) || "-",
+    user: owner
+  };
+}
+
+function formatDisplayDate(iso) {
+  if (!iso) return "Belirtilmedi";
+  try {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+function buildInternRequestDescription(task, extras) {
+  const lines = [
+    `Görev: ${task.title || "-"}`,
+    `Açıklama: ${task.description || "-"}`,
+    ...extras.filter(Boolean)
+  ];
+  return lines.join("\n");
+}
+
+async function pushRequestToAssigner(payload) {
+  requests.unshift(payload);
+  requests = sortRequestsQueuedFirst(requests);
+  await window.api.saveRequests(requests);
 }
 
 async function renderRequests() {
   const list = document.getElementById("requestList");
   if (!list) return;
-  if (!requests.length) {
+  const incoming = getIncomingRequestsForUser();
+  if (!incoming.length) {
     list.innerHTML = '<div class="requests-v2-empty">Size atanan bir gorev yada talep bulunmuyor</div>';
     return;
   }
-  const sortedRequests = sortRequestsQueuedFirst(requests);
+  const sortedRequests = sortRequestsQueuedFirst(incoming);
   list.innerHTML = sortedRequests
     .map((req) => {
       const owner = findUserBySender(req.senderId, req.sender);
       const senderName = req.sender || getUserFullName(owner);
-      const avatar = owner?.profilFoto
-        ? `<img src="${owner.profilFoto}" alt="${senderName}" style="width:100%;height:100%;object-fit:cover;border-radius:999px;" />`
+      const ownerPhoto = owner ? getUserPhotoById(owner.id) || owner.profilFoto : "";
+      const avatar = ownerPhoto
+        ? `<img src="${ownerPhoto}" alt="${senderName}" style="width:100%;height:100%;object-fit:cover;border-radius:999px;" />`
         : getUserInitials(owner || { ad_soyad: senderName });
       const queued = req.status === "Bekletildi";
       const remainingDaysRaw = req.dueDate ? daysLeft(req.dueDate) : null;
@@ -308,7 +649,13 @@ async function renderRequests() {
             : req.priority === "Orta"
               ? "orta"
               : "dusuk";
-      const priorityLabel = queued ? "Sıraya Alındı" : req.priority || "Düşük";
+      const kindLabel =
+        req.requestKind === "postponement"
+          ? "Erteleme Talebi"
+          : req.requestKind === "completion"
+            ? "Tamamlama Talebi"
+            : "";
+      const priorityLabel = queued ? "Sıraya Alındı" : kindLabel || req.priority || "Düşük";
       const deadlineClass = remainingDays !== null && remainingDays <= 3 ? "danger" : remainingDays !== null && remainingDays <= 6 ? "warning" : "";
       const metaClass = deadlineClass || (req.dueDate ? (priorityClass === "kritik" ? "danger" : priorityClass === "onemli" ? "warning" : "") : "");
       const requestToneClass =
@@ -337,9 +684,9 @@ async function renderRequests() {
         </div>
         <div class="request-actions">
           <button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">${queued ? "Şimdi Başlat" : "Kabul Et"}</button>
-          <button class="btn-ghost requests-v2-btn" data-action="hold" data-id="${req.id}">
-            ${queued ? '<span class="requests-v2-btn-icon">✕</span>Talebi Kapat' : '<span class="requests-v2-btn-icon">⊞</span>Sıraya Al'}
-          </button>
+          ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-reject" data-action="reject" data-id="${req.id}">Görevi Reddet</button>`}
+          ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-queue" data-action="hold" data-id="${req.id}"><span class="requests-v2-btn-icon">⊞</span>Sıraya Al</button>`}
+          ${queued ? `<button class="btn-ghost requests-v2-btn" data-action="close" data-id="${req.id}"><span class="requests-v2-btn-icon">✕</span>Talebi Kapat</button>` : ""}
         </div>
       </article>`;
     })
@@ -364,17 +711,82 @@ async function renderRequests() {
       renderRequests();
       return;
     }
+    if (actionEl.dataset.action === "reject") {
+      openRequestRejectModal(req);
+      return;
+    }
     if (actionEl.dataset.action === "hold") {
-      if (req.status === "Bekletildi") {
-        openRequestCloseModal(req);
-      } else {
-        req.status = "Bekletildi";
-        requests = sortRequestsQueuedFirst([req, ...requests.filter((r) => r.id !== req.id)]);
-        await window.api.saveRequests(requests);
-        renderRequests();
-      }
+      openRequestQueueModal(req);
+      return;
+    }
+    if (actionEl.dataset.action === "close") {
+      openRequestCloseModal(req);
     }
   };
+}
+
+function openRequestQueueModal(request) {
+  const modal = document.getElementById("requestQueueModal");
+  const desc = document.getElementById("requestQueueDescription");
+  if (!modal || !request) return;
+  selectedQueueRequestId = String(request.id || "");
+  if (desc) {
+    desc.textContent = `"${request.title || "Görev"}" sıraya alınacak ve listenin en üstüne taşınacak. Bu işlem geri alınamaz.`;
+  }
+  modal.classList.remove("hidden");
+}
+
+function closeRequestQueueModalFn() {
+  const modal = document.getElementById("requestQueueModal");
+  if (modal) modal.classList.add("hidden");
+  selectedQueueRequestId = "";
+}
+
+function openRequestRejectModal(request) {
+  const modal = document.getElementById("requestRejectModal");
+  const senderEl = document.getElementById("requestRejectSender");
+  const titleEl = document.getElementById("requestRejectTaskTitle");
+  const check = document.getElementById("requestRejectConfirmCheck");
+  const confirmBtn = document.getElementById("confirmRequestReject");
+  if (!modal || !request) return;
+  selectedRejectRequestId = String(request.id || "");
+  const owner = findUserBySender(request.senderId, request.sender);
+  const senderName = request.sender || getUserFullName(owner) || "-";
+  if (senderEl) senderEl.textContent = senderName;
+  if (titleEl) titleEl.textContent = request.title || "-";
+  if (check) check.checked = false;
+  if (confirmBtn) confirmBtn.disabled = true;
+  modal.classList.remove("hidden");
+}
+
+function closeRequestRejectModalFn() {
+  const modal = document.getElementById("requestRejectModal");
+  if (modal) modal.classList.add("hidden");
+  selectedRejectRequestId = "";
+  const check = document.getElementById("requestRejectConfirmCheck");
+  const confirmBtn = document.getElementById("confirmRequestReject");
+  if (check) check.checked = false;
+  if (confirmBtn) confirmBtn.disabled = true;
+}
+
+async function handleRequestRejectConfirm() {
+  if (!selectedRejectRequestId) return;
+  requests = requests.filter((r) => String(r.id) !== selectedRejectRequestId);
+  await window.api.saveRequests(requests);
+  closeRequestRejectModalFn();
+  renderRequests();
+}
+
+async function handleRequestQueueConfirm() {
+  if (!selectedQueueRequestId) return;
+  const req = requests.find((r) => String(r.id) === selectedQueueRequestId);
+  if (!req) return;
+  req.status = "Bekletildi";
+  req.queuedAt = Date.now();
+  requests = sortRequestsQueuedFirst([req, ...requests.filter((r) => r.id !== req.id)]);
+  await window.api.saveRequests(requests);
+  closeRequestQueueModalFn();
+  renderRequests();
 }
 
 function openRequestCloseModal(request) {
@@ -502,17 +914,328 @@ async function renderTasks() {
   };
 }
 
-function openTaskWorkspace(task) {
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(`
-    <!doctype html><html><head><meta charset="utf-8"><title>Gorev</title>
-    <style>body{font-family:Arial;background:#0f1320;color:#e8ecff;margin:0;padding:24px}
-    .box{max-width:980px;margin:0 auto;border:1px solid #2d3450;border-radius:12px;background:#151b2b;padding:18px}
-    h1{margin:0 0 8px}p{line-height:1.6}.meta{color:#98a4cb;font-size:14px;margin-top:10px}</style></head>
-    <body><div class="box"><h1>${task.title || "-"}</h1><p>${task.description || "-"}</p><div class="meta">Oncelik: ${task.priority || "-"} | Son Tarih: ${task.dueDate || "Yok"}</div></div></body></html>
-  `);
-  w.document.close();
+function closeTaskCompleteModalFn() {
+  const modal = document.getElementById("taskCompleteModal");
+  if (modal) modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  taskCompleteFiles = [];
+  activeTaskFlowTask = null;
+  const form = document.getElementById("taskCompleteForm");
+  if (form) form.reset();
+  const err = document.getElementById("taskCompleteError");
+  if (err) err.textContent = "";
+  const list = document.getElementById("taskCompleteFileList");
+  if (list) list.innerHTML = "";
+}
+
+function openTaskCompleteModal(task) {
+  if (!task) return;
+  activeTaskFlowTask = task;
+  const modal = document.getElementById("taskCompleteModal");
+  const idInput = document.getElementById("taskCompleteTaskId");
+  if (idInput) idInput.value = String(task.taskId || "");
+  taskCompleteFiles = [];
+  initTaskCompleteFileUpload();
+  if (modal) {
+    modal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
+  }
+  closeTaskDetailModalFn();
+}
+
+function initTaskCompleteFileUpload() {
+  const drop = document.getElementById("taskCompleteFileDrop");
+  const input = document.getElementById("taskCompleteFileInput");
+  const browse = document.getElementById("taskCompleteFileBrowse");
+  const list = document.getElementById("taskCompleteFileList");
+  if (!drop || !input || !list) return;
+
+  const renderList = () => {
+    list.innerHTML = taskCompleteFiles
+      .map(
+        (f, i) =>
+          `<li class="task-file-item"><span>${f.name}</span><button type="button" data-remove-complete-file="${i}" class="btn-ghost">✕</button></li>`
+      )
+      .join("");
+    list.querySelectorAll("[data-remove-complete-file]").forEach((btn) => {
+      btn.onclick = () => {
+        taskCompleteFiles.splice(Number(btn.getAttribute("data-remove-complete-file")), 1);
+        renderList();
+      };
+    });
+  };
+
+  const addFiles = (fileList) => {
+    for (const file of fileList) {
+      if (file.size > 25 * 1024 * 1024) continue;
+      taskCompleteFiles.push(file);
+    }
+    renderList();
+  };
+
+  if (!drop.dataset.bound) {
+    drop.dataset.bound = "1";
+    browse?.addEventListener("click", (e) => {
+      e.preventDefault();
+      input.click();
+    });
+    drop.addEventListener("click", (e) => {
+      if (e.target === browse) return;
+      input.click();
+    });
+    input.addEventListener("change", () => {
+      addFiles(input.files || []);
+      input.value = "";
+    });
+    drop.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      drop.classList.add("drag-over");
+    });
+    drop.addEventListener("dragleave", () => drop.classList.remove("drag-over"));
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault();
+      drop.classList.remove("drag-over");
+      addFiles(e.dataTransfer?.files || []);
+    });
+  }
+  renderList();
+}
+
+async function handleTaskCompleteSubmit(event) {
+  event.preventDefault();
+  const err = document.getElementById("taskCompleteError");
+  if (err) err.textContent = "";
+  const task = activeTaskFlowTask;
+  if (!task) return;
+  const link = document.getElementById("taskCompleteLink")?.value.trim() || "";
+  const note = document.getElementById("taskCompleteNote")?.value.trim() || "";
+  if (!link && !note && !taskCompleteFiles.length) {
+    if (err) err.textContent = "En az bir dosya, bağlantı veya not ekleyin.";
+    return;
+  }
+  const assigner = resolveTaskAssigner(task);
+  if (!assigner.id) {
+    if (err) err.textContent = "Görevi atayan kişi bulunamadı.";
+    return;
+  }
+  const attachment = taskCompleteFiles.map((f) => f.name).join(", ");
+  const description = buildInternRequestDescription(task, [
+    `Çözüm bağlantısı: ${link || "-"}`,
+    `Stajyer notu: ${note || "-"}`,
+    attachment ? `Dosyalar: ${attachment}` : ""
+  ]);
+  await pushRequestToAssigner({
+    id: String(Date.now()),
+    requestKind: "completion",
+    title: `[Tamamlama] ${task.title || "Görev"}`,
+    description,
+    sender: getUserFullName(currentUser),
+    senderId: currentUser.id,
+    assignerId: assigner.id,
+    assignerName: assigner.name,
+    relatedTaskId: task.taskId || "",
+    department: currentUser.departman || task.department || "-",
+    priority: task.priority || "Orta",
+    dueDate: task.dueDate || "",
+    solutionLink: link,
+    internNote: note,
+    attachment,
+    status: "Yanit Bekliyor",
+    createdAt: new Date().toISOString()
+  });
+  task.status = "Tamamlanan";
+  await window.api.saveTasks(tasks);
+  closeTaskCompleteModalFn();
+  if (activeViewKey === "gorevlerim") renderTasks();
+}
+
+function closeTaskPostponeModalFn() {
+  const modal = document.getElementById("taskPostponeModal");
+  if (modal) modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  activeTaskFlowTask = null;
+  const form = document.getElementById("taskPostponeForm");
+  if (form) form.reset();
+  const err = document.getElementById("taskPostponeError");
+  if (err) err.textContent = "";
+  resetPostponeDatePicker();
+}
+
+function resetPostponeDatePicker() {
+  const hidden = document.getElementById("taskPostponeNewDate");
+  const label = document.getElementById("taskPostponeDateLabel");
+  if (hidden) hidden.value = "";
+  if (label) label.textContent = "Tarih seçin";
+  const pop = document.getElementById("taskPostponeDatePopover");
+  if (pop) pop.classList.add("hidden");
+}
+
+function renderPostponeDatePopover() {
+  const pop = document.getElementById("taskPostponeDatePopover");
+  const hidden = document.getElementById("taskPostponeNewDate");
+  if (!pop) return;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let minDate = today;
+  if (activeTaskFlowTask?.dueDate) {
+    const d = new Date(activeTaskFlowTask.dueDate);
+    if (!Number.isNaN(d.getTime()) && d > minDate) minDate = d;
+  }
+  if (!postponeDatePickerState.year) {
+    postponeDatePickerState.year = minDate.getFullYear();
+    postponeDatePickerState.month = minDate.getMonth();
+  }
+  const { year, month } = postponeDatePickerState;
+  const first = new Date(year, month, 1);
+  const startPad = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = first.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  const selected = hidden?.value || "";
+  const weekdays = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
+  let cells = "";
+  for (let i = 0; i < startPad; i++) cells += '<span class="task-date-day empty"></span>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dt = new Date(year, month, day);
+    const disabled = dt < minDate;
+    const isSel = selected === iso;
+    cells += `<button type="button" class="task-date-day ${disabled ? "disabled" : ""} ${isSel ? "selected" : ""}" data-iso="${iso}" ${disabled ? "disabled" : ""}>${day}</button>`;
+  }
+  pop.innerHTML = `
+    <div class="task-date-pop-head">
+      <button type="button" class="task-date-nav" data-postpone-nav="-1">‹</button>
+      <strong>${monthLabel}</strong>
+      <button type="button" class="task-date-nav" data-postpone-nav="1">›</button>
+    </div>
+    <div class="task-date-weekdays">${weekdays.map((w) => `<span>${w}</span>`).join("")}</div>
+    <div class="task-date-grid">${cells}</div>`;
+  pop.querySelectorAll("[data-postpone-nav]").forEach((btn) => {
+    btn.onclick = () => {
+      postponeDatePickerState.month += Number(btn.getAttribute("data-postpone-nav"));
+      if (postponeDatePickerState.month > 11) {
+        postponeDatePickerState.month = 0;
+        postponeDatePickerState.year += 1;
+      } else if (postponeDatePickerState.month < 0) {
+        postponeDatePickerState.month = 11;
+        postponeDatePickerState.year -= 1;
+      }
+      renderPostponeDatePopover();
+    };
+  });
+  pop.querySelectorAll(".task-date-day:not(.disabled):not(.empty)").forEach((btn) => {
+    btn.onclick = () => {
+      const iso = btn.getAttribute("data-iso");
+      if (hidden) hidden.value = iso;
+      const label = document.getElementById("taskPostponeDateLabel");
+      if (label) label.textContent = formatTaskDateLabel(iso);
+      pop.classList.add("hidden");
+    };
+  });
+}
+
+function initPostponeDatePicker() {
+  const btn = document.getElementById("taskPostponeDateBtn");
+  const pop = document.getElementById("taskPostponeDatePopover");
+  if (!btn || !pop) return;
+  postponeDatePickerState = { year: 0, month: 0 };
+  if (!postponeDatePickerBound) {
+    postponeDatePickerBound = true;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (pop.classList.contains("hidden")) {
+        renderPostponeDatePopover();
+        pop.classList.remove("hidden");
+      } else {
+        pop.classList.add("hidden");
+      }
+    });
+    document.addEventListener("click", (e) => {
+      if (!pop.classList.contains("hidden") && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        pop.classList.add("hidden");
+      }
+    });
+  }
+}
+
+function openTaskPostponeModal(task) {
+  if (!task) return;
+  activeTaskFlowTask = task;
+  const modal = document.getElementById("taskPostponeModal");
+  const idInput = document.getElementById("taskPostponeTaskId");
+  if (idInput) idInput.value = String(task.taskId || "");
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set("taskPostponeBreadcrumb", task.title || "-");
+  set("taskPostponeTaskName", task.title || "-");
+  set("taskPostponeCurrentDue", formatDisplayDate(task.dueDate));
+  set("taskPostponePriority", task.priority || "-");
+  resetPostponeDatePicker();
+  initPostponeDatePicker();
+  if (modal) {
+    modal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
+  }
+  closeTaskDetailModalFn();
+}
+
+async function handleTaskPostponeSubmit(event) {
+  event.preventDefault();
+  const err = document.getElementById("taskPostponeError");
+  if (err) err.textContent = "";
+  const task = activeTaskFlowTask;
+  if (!task) return;
+  const newDate = document.getElementById("taskPostponeNewDate")?.value || "";
+  const reason = document.getElementById("taskPostponeReason")?.value || "";
+  const details = document.getElementById("taskPostponeDetails")?.value.trim() || "";
+  if (!newDate) {
+    if (err) err.textContent = "Yeni teslim tarihi seçin.";
+    return;
+  }
+  if (!reason) {
+    if (err) err.textContent = "Erteleme nedeni seçin.";
+    return;
+  }
+  if (details.length < 50) {
+    if (err) err.textContent = "Mazeret detayı en az 50 karakter olmalı.";
+    return;
+  }
+  const assigner = resolveTaskAssigner(task);
+  if (!assigner.id) {
+    if (err) err.textContent = "Görevi atayan kişi bulunamadı.";
+    return;
+  }
+  const description = buildInternRequestDescription(task, [
+    `Mevcut teslim: ${formatDisplayDate(task.dueDate)}`,
+    `Yeni teslim: ${formatDisplayDate(newDate)}`,
+    `Neden: ${reason}`,
+    `Detay: ${details}`
+  ]);
+  await pushRequestToAssigner({
+    id: String(Date.now()),
+    requestKind: "postponement",
+    title: `[Erteleme] ${task.title || "Görev"}`,
+    description,
+    sender: getUserFullName(currentUser),
+    senderId: currentUser.id,
+    assignerId: assigner.id,
+    assignerName: assigner.name,
+    relatedTaskId: task.taskId || "",
+    department: currentUser.departman || task.department || "-",
+    priority: task.priority || "Orta",
+    dueDate: newDate,
+    previousDueDate: task.dueDate || "",
+    postponeReason: reason,
+    postponeDetails: details,
+    status: "Yanit Bekliyor",
+    createdAt: new Date().toISOString()
+  });
+  task.postponementStatus = "Bekliyor";
+  task.postponementReason = reason;
+  await window.api.saveTasks(tasks);
+  closeTaskPostponeModalFn();
+  if (activeViewKey === "gorevlerim") renderTasks();
 }
 
 function openTaskDetailModal(task) {
@@ -553,15 +1276,21 @@ function openTaskDetailModal(task) {
     else if (p === "orta") priorityTagEl.classList.add("task-detail-tag-mid");
   }
 
-  const actions = taskDetailModal.querySelector(".task-detail-actions");
-  if (actions) {
-    const postpone = actions.querySelector(".task-detail-btn-ghost");
-    const startBtn = actions.querySelector(".task-detail-btn-primary");
-    if (postpone) postpone.style.display = task.dueDate ? "" : "none";
-    if (startBtn) {
-      startBtn.innerHTML = 'Göreve Başla <span>▷</span>';
-      startBtn.onclick = () => openTaskWorkspace(task);
-    }
+  const postponeBtn = document.getElementById("taskDetailPostponeBtn");
+  const submitBtn = document.getElementById("taskDetailSubmitBtn");
+  if (postponeBtn) {
+    postponeBtn.style.display = task.dueDate ? "" : "none";
+    postponeBtn.onclick = () => openTaskPostponeModal(task);
+  }
+  if (submitBtn) {
+    submitBtn.innerHTML = 'Göreve Başla <span>▷</span>';
+    submitBtn.onclick = () => openTaskCompleteModal(task);
+  }
+  const mailBtn = taskDetailModal.querySelector(".task-detail-mail-btn");
+  if (mailBtn) {
+    mailBtn.onclick = () => {
+      if (owner) openMessagesWithUser(owner);
+    };
   }
   taskDetailModal.classList.remove("hidden");
   document.body.classList.add("task-detail-open");
@@ -576,19 +1305,154 @@ function closeTaskDetailModalFn() {
 function renderDepartments() {
   const rows = document.getElementById("departmentRows");
   const stats = document.getElementById("departmentStats");
+  const searchInput = document.querySelector(".departments-v2-search");
+  const addBtn = document.querySelector(".departments-v2-add-btn");
+  if (addBtn) addBtn.classList.toggle("hidden", isStajyerRole());
   if (!rows || !stats) return;
-  const byDep = users.reduce((acc, u) => {
+
+  const q = String(searchInput?.value || "").trim().toLowerCase();
+  const allNames = new Set([...departmentNames, ...users.map((u) => u.departman || "Genel").filter(Boolean)]);
+  const byDep = {};
+  for (const name of allNames) byDep[name] = [];
+  for (const u of users) {
     const key = u.departman || "Genel";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(u);
-    return acc;
-  }, {});
-  const deps = Object.entries(byDep);
+    if (!byDep[key]) byDep[key] = [];
+    byDep[key].push(u);
+  }
+
+  let deps = Object.entries(byDep).sort((a, b) => a[0].localeCompare(b[0], "tr"));
+  if (q) {
+    deps = deps.filter(([name, members]) => {
+      if (name.toLowerCase().includes(q)) return true;
+      return members.some((m) => getUserFullName(m).toLowerCase().includes(q));
+    });
+  }
+
+  const expandedSet = getDeptExpandedSet();
+
   stats.innerHTML = `
     <div class="departments-v2-stat-box"><strong>${deps.length}</strong><span>Aktif Departman</span></div>
-    <div class="departments-v2-stat-box"><strong>${users.length}</strong><span>Toplam Uye</span></div>
+    <div class="departments-v2-stat-box"><strong>${users.length}</strong><span>Toplam Üye</span></div>
   `;
-  rows.innerHTML = deps.map(([name, members]) => `<section class="departments-v2-row expanded"><div class="departments-v2-row-head"><div class="departments-v2-row-title-wrap"><div><h3>${name}</h3><p>${members.length} kisilik ekip</p></div></div></div></section>`).join("");
+
+  rows.innerHTML = deps
+    .map(([name, members]) => {
+      const memberCards = members
+        .map((m) => {
+          const full = getUserFullName(m);
+          const photo = getUserPhotoById(m.id);
+          const av = photo
+            ? `<img src="${photo}" alt="${full}" />`
+            : getUserInitials(m);
+          const role = getRoleLabel(String(m.rol || "").toUpperCase());
+          const canMail = !isSameUser(m, currentUser);
+          const mailBtn = canMail
+            ? `<button type="button" class="departments-v2-mail-btn" data-action="dept-mail" data-user-id="${String(m.id)}" title="Mesaj gönder">✉</button>`
+            : "";
+          return `<article class="departments-v2-member-card">
+            <div class="departments-v2-member-head">
+              <div class="departments-v2-member-avatar">${av}</div>
+              <div class="departments-v2-member-meta"><h5>${full}</h5><span>${role}</span></div>
+              ${mailBtn}
+            </div>
+          </article>`;
+        })
+        .join("") || '<p class="departments-v2-empty-members">Bu departmanda henüz üye yok.</p>';
+      const isExpanded = expandedSet.has(name);
+      return `<section class="departments-v2-row ${isExpanded ? "expanded" : "collapsed"}" data-dept="${escapeHtmlAttr(name)}">
+        <div class="departments-v2-row-head" data-toggle-dept="${escapeHtmlAttr(name)}">
+          <div class="departments-v2-row-title-wrap">
+            <div class="departments-v2-row-icon">▤</div>
+            <div><h3>${name}</h3><p>${members.length} kişilik ekip</p></div>
+          </div>
+          <div class="departments-v2-row-meta">
+            <span class="departments-v2-row-count">${members.length} üye</span>
+            <span class="departments-v2-row-arrow">▾</span>
+          </div>
+        </div>
+        <div class="departments-v2-members-grid">${memberCards}</div>
+      </section>`;
+    })
+    .join("");
+
+  rows.querySelectorAll("[data-toggle-dept]").forEach((head) => {
+    head.onclick = () => {
+      const row = head.closest(".departments-v2-row");
+      const deptName = head.getAttribute("data-toggle-dept");
+      if (!row || !deptName) return;
+      const set = getDeptExpandedSet();
+      if (row.classList.contains("expanded")) {
+        row.classList.remove("expanded");
+        row.classList.add("collapsed");
+        set.delete(deptName);
+      } else {
+        row.classList.add("expanded");
+        row.classList.remove("collapsed");
+        set.add(deptName);
+      }
+      saveDeptExpandedSet(set);
+    };
+  });
+
+  if (addBtn && !addBtn.dataset.bound) {
+    addBtn.dataset.bound = "1";
+    addBtn.onclick = () => openDepartmentAddModal();
+  }
+  if (searchInput && !searchInput.dataset.bound) {
+    searchInput.dataset.bound = "1";
+    searchInput.oninput = () => renderDepartments();
+  }
+
+  if (!rows.dataset.deptMailBound) {
+    rows.dataset.deptMailBound = "1";
+    rows.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-action='dept-mail']");
+      if (!btn) return;
+      e.stopPropagation();
+      const user = users.find((u) => String(u.id) === String(btn.getAttribute("data-user-id")));
+      if (user) await openMessagesWithUser(user);
+    });
+  }
+}
+
+function openDepartmentAddModal() {
+  const modal = document.getElementById("departmentAddModal");
+  const input = document.getElementById("departmentAddName");
+  const err = document.getElementById("departmentAddError");
+  if (!modal) return;
+  if (input) input.value = "";
+  if (err) err.textContent = "";
+  modal.classList.remove("hidden");
+}
+
+function closeDepartmentAddModalFn() {
+  const modal = document.getElementById("departmentAddModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function handleDepartmentAddConfirm() {
+  const input = document.getElementById("departmentAddName");
+  const err = document.getElementById("departmentAddError");
+  const name = String(input?.value || "").trim();
+  if (!name) {
+    if (err) err.textContent = "Departman adı zorunludur.";
+    return;
+  }
+  const exists = departmentNames.some((d) => d.toLowerCase() === name.toLowerCase()) ||
+    users.some((u) => String(u.departman || "").toLowerCase() === name.toLowerCase());
+  if (exists) {
+    if (err) err.textContent = "Bu departman zaten mevcut.";
+    return;
+  }
+  departmentNames.push(name);
+  const result = await window.api.saveDepartments(departmentNames);
+  if (!result?.ok) {
+    if (err) err.textContent = result?.error || "Kaydedilemedi.";
+    return;
+  }
+  closeDepartmentAddModalFn();
+  populateDepartmentSelects(name);
+  renderDepartments();
 }
 
 function renderUsers() {
@@ -600,7 +1464,7 @@ function renderUsers() {
   const paginationEl = document.getElementById("usersPagination");
   if (!tbody || !tabs || !totalEl || !rangeEl || !paginationEl) return;
 
-  const roleClassMap = { MANAGER: "mudur", LEADER: "lider", ADMIN: "admin", STAJYER: "stajyer" };
+  const roleClassMap = { MANAGER: "mudur", LEADER: "lider", ADMIN: "personel", STAJYER: "stajyer", DEV: "dev" };
   const filteredUsers = activeUsersRoleFilter === "ALL" ? users : users.filter((u) => String(u.rol || "").toUpperCase() === activeUsersRoleFilter);
   const total = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(total / USERS_PER_PAGE));
@@ -614,9 +1478,10 @@ function renderUsers() {
         const full = getUserFullName(user);
         const initials = getUserInitials(user);
         const role = String(user.rol || "STAJYER").toUpperCase();
+        const userPhoto = getUserPhotoById(user.id);
         return `
         <tr>
-          <td><div class="users-v2-person"><div class="users-v2-avatar">${user?.profilFoto ? `<img src="${user.profilFoto}" alt="${full}" />` : initials}</div><div><strong>${full}</strong><small>Kullanici ID: #${user.id || "-"}</small></div></div></td>
+          <td><div class="users-v2-person"><div class="users-v2-avatar">${userPhoto ? `<img src="${userPhoto}" alt="${full}" />` : initials}</div><div><strong>${full}</strong><small>Kullanici ID: #${user.id || "-"}</small></div></div></td>
           <td>${user.email || "-"}</td>
           <td>${user.departman || "-"}</td>
           <td><span class="users-v2-role ${roleClassMap[role] || "stajyer"}">${getRoleLabel(role)}</span></td>
@@ -660,13 +1525,14 @@ function renderUsers() {
     if (!user) return;
     if (action === "delete") openUserDeleteModal(user);
     if (action === "edit") openUserEditModal(user);
-    if (action === "mail") window.alert(`${getUserFullName(user)} icin mesaj akisi yakinda.`);
+    if (action === "mail") openMessagesWithUser(user);
   };
 
   if (addBtn) addBtn.onclick = () => openUserCreateModal();
 }
 
 function openUserCreateModal() {
+  populateDepartmentSelects();
   if (!userCreateModal) return;
   userCreateModal.classList.remove("hidden");
   if (userCreateError) userCreateError.textContent = "";
@@ -697,6 +1563,7 @@ function changeUserEditWorkHours(part, step) {
 }
 
 function openUserEditModal(user) {
+  populateDepartmentSelects(user?.departman || "");
   if (!userEditModal || !userEditForm) return;
   selectedEditUserId = String(user.id || "");
   selectedEditRole = String(user.rol || "STAJYER").toUpperCase();
@@ -779,7 +1646,7 @@ async function handleUserEditSubmit(event) {
     currentUser = normalizeUser(updated);
     localStorage.setItem("currentUser", JSON.stringify(currentUser));
     document.getElementById("sidebarUserName").textContent = getUserFullName(currentUser);
-    document.getElementById("sidebarUserRole").textContent = String(currentUser.sirketUnvan || currentUser.rol || "Kullanici").toUpperCase();
+    updateSidebarUserMeta();
     document.getElementById("sidebarUserDept").textContent = currentUser.departman || "-";
     renderSidebarAvatar(currentUser);
   }
@@ -919,13 +1786,14 @@ function renderProfile() {
   const savedAbout = String(localStorage.getItem(aboutKey) || "").trim();
   const fallbackAbout =
     "Yazilim gelistirme sureclerine merakli, ogrenmeye acik ve ekip calismasina yatkin bir stajyerim. Modern web teknolojileri ve surdurulebilir kod mimarileri uzerine kendimi gelistirmeyi hedefliyorum.";
+  const displayAbout = savedAbout || fallbackAbout;
   const map = {
     profileFullName: getUserFullName(currentUser),
-    profileTitle: currentUser.sirketUnvan || currentUser.rol || "-",
+    profileTitle: getSidebarRoleText(currentUser),
     profileDepartmentBadge: currentUser.departman || "-",
     profileInfoEmail: currentUser.email || "-",
     profilePhone: currentUser.telefon || "***",
-    profileAboutText: savedAbout || fallbackAbout,
+    profileAboutText: displayAbout,
     profileWorkHours: currentUser.calismaSaati || "09:00 - 18:00"
   };
   Object.entries(map).forEach(([id, value]) => {
@@ -934,15 +1802,17 @@ function renderProfile() {
   });
   const renderAvatar = () => {
     if (!profileAvatarEl) return;
-    if (currentUser?.profilFoto) {
+    const photo = getUserPhotoById(currentUser.id) || currentUser?.profilFoto;
+    if (photo) {
       profileAvatarEl.classList.add("has-photo");
-      profileAvatarEl.innerHTML = `<img src="${currentUser.profilFoto}" alt="Profil" class="profile-v2-photo-img" />`;
+      profileAvatarEl.innerHTML = `<img src="${photo}" alt="Profil" class="profile-v2-photo-img" />`;
     } else {
       profileAvatarEl.classList.remove("has-photo");
       profileAvatarEl.textContent = getUserInitials(currentUser);
     }
   };
   renderAvatar();
+  bindProfileCustomization();
 
   let nameEdit = false;
   let emailEdit = false;
@@ -1044,7 +1914,7 @@ function renderProfile() {
     if (!aboutEl || !aboutInput || !aboutEditBtn) return;
     aboutEdit = active;
     if (active) {
-      aboutInput.value = savedAbout || "";
+      aboutInput.value = String(aboutEl.textContent || displayAbout).trim();
       aboutEl.classList.add("hidden");
       aboutInput.classList.remove("hidden");
       aboutEditBtn.textContent = "✓";
@@ -1109,9 +1979,10 @@ function renderProfile() {
   };
 
   const saveAbout = () => {
-    const value = String(aboutInput?.value || "").trim() || fallbackAbout;
-    localStorage.setItem(aboutKey, value);
-    if (aboutEl) aboutEl.textContent = value;
+    const value = String(aboutInput?.value || "").trim();
+    const toStore = value || displayAbout;
+    localStorage.setItem(aboutKey, toStore);
+    if (aboutEl) aboutEl.textContent = toStore;
     setAboutMode(false);
   };
 
@@ -1260,6 +2131,7 @@ function renderProfile() {
 async function handleCreateTask(event) {
   event.preventDefault();
   taskModalError.textContent = "";
+  syncTaskUsersHiddenInput();
   const usersField = document.getElementById("taskUsers")?.value.trim() || "";
   const title = document.getElementById("taskTitle")?.value.trim() || "";
   const description = document.getElementById("taskDescription")?.value.trim() || "";
@@ -1267,8 +2139,13 @@ async function handleCreateTask(event) {
   const startMode = document.getElementById("taskStartMode")?.value || "accepted";
   const dueDate = document.getElementById("taskDueDate")?.value || "";
   const attachment = document.getElementById("taskAttachment")?.value?.trim() || "";
-  if (!usersField || !title || !description) {
-    taskModalError.textContent = "Stajyer, baslik ve aciklama zorunludur.";
+  if (!taskSelectedAssigneeIds.size || !title || !description) {
+    taskModalError.textContent = "En az bir stajyer/.dev seçin; başlık ve açıklama zorunludur.";
+    return;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  if (dueDate && dueDate < today) {
+    taskModalError.textContent = "Geçmiş bir tarih seçilemez.";
     return;
   }
   const request = {
@@ -1290,48 +2167,193 @@ async function handleCreateTask(event) {
   requests = sortRequestsQueuedFirst(requests);
   await window.api.saveRequests(requests);
   closeTaskModalFn();
-  const currentUrl = window.location.href;
-  window.location.reload();
-  setTimeout(() => {
-    if (window.location.href === currentUrl) {
-      window.location.href = currentUrl;
+  if (activeViewKey === "gelen-talepler") renderRequests();
+}
+
+function syncTaskUsersHiddenInput() {
+  const hidden = document.getElementById("taskUsers");
+  const names = [...taskSelectedAssigneeIds]
+    .map((id) => {
+      const u = users.find((x) => String(x.id) === String(id));
+      return u ? getUserFullName(u) : "";
+    })
+    .filter(Boolean);
+  if (hidden) hidden.value = names.join(", ");
+}
+
+function renderTaskAssigneePicker() {
+  const picker = document.getElementById("taskAssigneePicker");
+  if (!picker) return;
+  const assignees = users.filter(isTaskAssigneeRole);
+  picker.innerHTML = assignees.length
+    ? assignees
+        .map((u) => {
+          const id = String(u.id);
+          const selected = taskSelectedAssigneeIds.has(id);
+          const photo = getUserPhotoById(u.id);
+          const av = photo
+            ? `<img src="${photo}" alt="" />`
+            : `<span class="task-assignee-avatar">${getUserInitials(u)}</span>`;
+          return `<div class="task-assignee-card ${selected ? "selected" : ""}" data-user-id="${id}" role="button" tabindex="0">${av}<strong>${getUserFullName(u)}</strong><small>${getRoleLabel(String(u.rol || "").toUpperCase())}</small></div>`;
+        })
+        .join("")
+    : '<p class="task-assignee-empty">Stajyer veya .dev rolünde kullanıcı yok.</p>';
+
+  picker.querySelectorAll("[data-user-id]").forEach((card) => {
+    card.onclick = () => {
+      const id = card.getAttribute("data-user-id");
+      if (taskSelectedAssigneeIds.has(id)) taskSelectedAssigneeIds.delete(id);
+      else taskSelectedAssigneeIds.add(id);
+      syncTaskUsersHiddenInput();
+      renderTaskAssigneePicker();
+    };
+  });
+}
+
+function initTaskFileUpload() {
+  const drop = document.getElementById("taskFileDropZone");
+  const input = document.getElementById("taskFileInput");
+  const browse = document.getElementById("taskFileBrowseBtn");
+  const list = document.getElementById("taskFileList");
+  const hidden = document.getElementById("taskAttachment");
+  if (!drop || !input || !list) return;
+
+  const renderList = () => {
+    list.innerHTML = taskAttachedFiles
+      .map(
+        (f, i) => `<li class="task-file-item"><span>${f.name} (${Math.round(f.size / 1024)} KB)</span><button type="button" data-remove-file="${i}" class="btn-ghost">✕</button></li>`
+      )
+      .join("");
+    list.querySelectorAll("[data-remove-file]").forEach((btn) => {
+      btn.onclick = () => {
+        taskAttachedFiles.splice(Number(btn.getAttribute("data-remove-file")), 1);
+        renderList();
+        if (hidden) hidden.value = taskAttachedFiles.map((f) => f.name).join(", ");
+      };
+    });
+    if (hidden) hidden.value = taskAttachedFiles.map((f) => f.name).join(", ");
+  };
+
+  const addFiles = (fileList) => {
+    for (const file of fileList) {
+      if (file.size > 25 * 1024 * 1024) continue;
+      taskAttachedFiles.push(file);
     }
-  }, 120);
+    renderList();
+  };
+
+  if (!drop.dataset.bound) {
+    drop.dataset.bound = "1";
+    browse?.addEventListener("click", (e) => {
+      e.preventDefault();
+      input.click();
+    });
+    drop.addEventListener("click", (e) => {
+      if (e.target === browse) return;
+      input.click();
+    });
+    input.addEventListener("change", () => {
+      addFiles(input.files || []);
+      input.value = "";
+    });
+    drop.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      drop.classList.add("drag-over");
+    });
+    drop.addEventListener("dragleave", () => drop.classList.remove("drag-over"));
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault();
+      drop.classList.remove("drag-over");
+      addFiles(e.dataTransfer?.files || []);
+    });
+  }
+  renderList();
 }
 
 function openTaskModal() {
-  if (taskModal) taskModal.classList.remove("hidden");
+  if (!taskModal) return;
+  taskModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  taskSelectedAssigneeIds = new Set();
+  taskAttachedFiles = [];
+  resetTaskDatePicker();
+  renderTaskAssigneePicker();
+  initTaskFileUpload();
+  initTaskDatePicker();
+  syncTaskUsersHiddenInput();
 }
 
 function closeTaskModalFn() {
   if (!taskModal) return;
   taskModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
   if (taskCreateForm) taskCreateForm.reset();
   if (taskModalError) taskModalError.textContent = "";
+  taskSelectedAssigneeIds = new Set();
+  taskAttachedFiles = [];
+  resetTaskDatePicker();
 }
 
 function bindShellEvents() {
   navLinks.forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (btn.dataset.action === "open-task-create") {
+        if (!canAccessStaffFeatures()) return;
+        openTaskModal();
+        return;
+      }
       navLinks.forEach((item) => item.classList.remove("active"));
       btn.classList.add("active");
-      if (btn.dataset.view === "gorev-olustur") return openTaskModal();
       localStorage.setItem(LAST_ACTIVE_VIEW_KEY, btn.dataset.view);
       await loadView(btn.dataset.view);
     });
   });
+
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener("click", () => {
+      appShell.classList.toggle("sidebar-hidden");
+      localStorage.setItem("sidebarHidden", appShell.classList.contains("sidebar-hidden") ? "1" : "0");
+    });
+  }
+  if (localStorage.getItem("sidebarHidden") === "1") {
+    appShell.classList.add("sidebar-hidden");
+  }
 
   if (toggleSidebarBtn) toggleSidebarBtn.addEventListener("click", () => {
     sidebar.classList.toggle("collapsed");
     appShell.classList.toggle("collapsed");
   });
 
+  const taskAssignAllBtn = document.getElementById("taskAssignAllBtn");
+  if (taskAssignAllBtn) {
+    taskAssignAllBtn.addEventListener("click", () => {
+      users.filter(isTaskAssigneeRole).forEach((u) => taskSelectedAssigneeIds.add(String(u.id)));
+      syncTaskUsersHiddenInput();
+      renderTaskAssigneePicker();
+    });
+  }
+
+  const cancelRequestQueue = document.getElementById("cancelRequestQueue");
+  const confirmRequestQueue = document.getElementById("confirmRequestQueue");
+  if (cancelRequestQueue) cancelRequestQueue.addEventListener("click", closeRequestQueueModalFn);
+  if (confirmRequestQueue) confirmRequestQueue.addEventListener("click", handleRequestQueueConfirm);
+
+  const cancelDepartmentAdd = document.getElementById("cancelDepartmentAdd");
+  const confirmDepartmentAdd = document.getElementById("confirmDepartmentAdd");
+  if (cancelDepartmentAdd) cancelDepartmentAdd.addEventListener("click", closeDepartmentAddModalFn);
+  if (confirmDepartmentAdd) confirmDepartmentAdd.addEventListener("click", handleDepartmentAddConfirm);
+
   if (logoutBtn) logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("currentUser");
     window.location.href = "./login.html";
   });
 
-  if (openTaskCreate) openTaskCreate.addEventListener("click", openTaskModal);
+  if (openTaskCreate) {
+    openTaskCreate.addEventListener("click", () => {
+      if (canAccessStaffFeatures()) openTaskModal();
+    });
+  }
   if (closeTaskModal) closeTaskModal.addEventListener("click", closeTaskModalFn);
   if (taskModal) taskModal.addEventListener("click", (e) => e.target === taskModal && closeTaskModalFn());
   if (taskCreateForm) taskCreateForm.addEventListener("submit", handleCreateTask);
@@ -1371,6 +2393,43 @@ function bindShellEvents() {
     });
   }
   if (confirmRequestClose) confirmRequestClose.addEventListener("click", handleRequestCloseConfirm);
+
+  const cancelRequestReject = document.getElementById("cancelRequestReject");
+  const confirmRequestReject = document.getElementById("confirmRequestReject");
+  const requestRejectConfirmCheck = document.getElementById("requestRejectConfirmCheck");
+  const requestRejectModal = document.getElementById("requestRejectModal");
+  if (cancelRequestReject) cancelRequestReject.addEventListener("click", closeRequestRejectModalFn);
+  if (requestRejectModal) {
+    requestRejectModal.addEventListener("click", (e) => e.target === requestRejectModal && closeRequestRejectModalFn());
+  }
+  if (requestRejectConfirmCheck && confirmRequestReject) {
+    requestRejectConfirmCheck.addEventListener("change", () => {
+      confirmRequestReject.disabled = !requestRejectConfirmCheck.checked;
+    });
+  }
+  if (confirmRequestReject) confirmRequestReject.addEventListener("click", handleRequestRejectConfirm);
+
+  const taskCompleteForm = document.getElementById("taskCompleteForm");
+  const closeTaskCompleteModal = document.getElementById("closeTaskCompleteModal");
+  const cancelTaskComplete = document.getElementById("cancelTaskComplete");
+  const taskCompleteModal = document.getElementById("taskCompleteModal");
+  if (taskCompleteForm) taskCompleteForm.addEventListener("submit", handleTaskCompleteSubmit);
+  if (closeTaskCompleteModal) closeTaskCompleteModal.addEventListener("click", closeTaskCompleteModalFn);
+  if (cancelTaskComplete) cancelTaskComplete.addEventListener("click", closeTaskCompleteModalFn);
+  if (taskCompleteModal) {
+    taskCompleteModal.addEventListener("click", (e) => e.target === taskCompleteModal && closeTaskCompleteModalFn());
+  }
+
+  const taskPostponeForm = document.getElementById("taskPostponeForm");
+  const closeTaskPostponeModal = document.getElementById("closeTaskPostponeModal");
+  const cancelTaskPostpone = document.getElementById("cancelTaskPostpone");
+  const taskPostponeModal = document.getElementById("taskPostponeModal");
+  if (taskPostponeForm) taskPostponeForm.addEventListener("submit", handleTaskPostponeSubmit);
+  if (closeTaskPostponeModal) closeTaskPostponeModal.addEventListener("click", closeTaskPostponeModalFn);
+  if (cancelTaskPostpone) cancelTaskPostpone.addEventListener("click", closeTaskPostponeModalFn);
+  if (taskPostponeModal) {
+    taskPostponeModal.addEventListener("click", (e) => e.target === taskPostponeModal && closeTaskPostponeModalFn());
+  }
 }
 
 async function init() {
@@ -1398,9 +2457,7 @@ async function init() {
         const nameEl = document.getElementById("sidebarUserName");
         const roleEl = document.getElementById("sidebarUserRole");
         const deptEl = document.getElementById("sidebarUserDept");
-        if (nameEl) nameEl.textContent = getUserFullName(currentUser);
-        if (roleEl) roleEl.textContent = String(currentUser.sirketUnvan || currentUser.rol || "Kullanici").toUpperCase();
-        if (deptEl) deptEl.textContent = currentUser.departman || "-";
+        updateSidebarUserMeta();
       }
       syncChatBridgeContext();
       if (activeViewKey === "mesajlar" && typeof window.__messagesPageRefresh === "function") {
@@ -1420,9 +2477,11 @@ async function init() {
     });
   }
   bindShellEvents();
+  populateDepartmentSelects();
   const savedView = localStorage.getItem(LAST_ACTIVE_VIEW_KEY);
-  const validView = navLinks.some((btn) => btn.dataset.view === savedView);
-  const initialView = validView ? savedView : "gorevlerim";
+  let validView = navLinks.some((btn) => btn.dataset.view === savedView && !btn.classList.contains("nav-link-hidden"));
+  let initialView = validView ? savedView : "gorevlerim";
+  if (isStajyerRole() && STAJYER_HIDDEN_VIEWS.has(initialView)) initialView = "gorevlerim";
   navLinks.forEach((item) => item.classList.remove("active"));
   const initialBtn = navLinks.find((btn) => btn.dataset.view === initialView);
   if (initialBtn) initialBtn.classList.add("active");

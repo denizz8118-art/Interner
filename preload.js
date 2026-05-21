@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("api", {
   saveUsers: (users) => ipcRenderer.invoke("users:save", users),
   createUser: (user) => ipcRenderer.invoke("users:create", user),
   listDepartments: () => ipcRenderer.invoke("departments:list"),
+  saveDepartments: (departments) => ipcRenderer.invoke("departments:save", departments),
   addUser: (user) => ipcRenderer.invoke("users:add", user),
   deleteUser: (userId) => ipcRenderer.invoke("users:delete", userId),
   listTasks: () => ipcRenderer.invoke("tasks:list"),

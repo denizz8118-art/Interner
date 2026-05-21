@@ -238,9 +238,44 @@
   margin-top: auto;
   padding-top: 18px;
   border-top: 1px solid #464555;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.requests-v2-card.queued .request-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.requests-v2-btn.btn-primary,
+.requests-v2-btn.btn-reject,
+.requests-v2-btn.btn-queue {
+  transition: box-shadow 0.2s ease, transform 0.15s ease, filter 0.2s ease;
+}
+
+.requests-v2-btn.btn-primary:hover {
+  box-shadow: 0 0 18px rgba(135, 129, 255, 0.65), 0 0 36px rgba(135, 129, 255, 0.35);
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.requests-v2-btn.btn-reject {
+  background: #b91c2c !important;
+  border: 1px solid #ef4444 !important;
+  color: #fff !important;
+}
+
+.requests-v2-btn.btn-reject:hover {
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.7), 0 0 34px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.requests-v2-btn.btn-queue:hover {
+  box-shadow: 0 0 16px rgba(196, 192, 255, 0.55), 0 0 30px rgba(108, 99, 255, 0.35);
+  border-color: #8781ff;
+  color: #e8e6ff;
+  transform: translateY(-1px);
 }
 
 .requests-v2-btn {

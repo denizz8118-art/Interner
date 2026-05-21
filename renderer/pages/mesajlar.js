@@ -21,6 +21,8 @@
     const pickerListEl = document.getElementById("messagesUserPickerList");
     const contextMenuEl = document.getElementById("convContextMenu");
     const composeBtn = document.querySelector(".messages-compose-btn");
+    const chatPanelEl = document.getElementById("messagesChatPanel");
+    const chatActionsEl = document.getElementById("messagesChatActions");
 
     if (!listEl || !headerEl || !streamEl || !searchInput || !formEl || !inputEl) return;
 
@@ -95,6 +97,7 @@
     const isConvVisible = (conv) => {
       const uid = myId();
       const cu = safeCurrent();
+      if (conv.id === activeConversationId && peerIdFromConv(conv)) return true;
       if (!cu) return visibleItemsForViewer(conv, "").length > 0 || !conv.participantIds?.length;
       if (conv.participantIds?.length) {
         if (!conv.participantIds.map(String).includes(uid)) return false;
@@ -244,13 +247,30 @@
         .join("");
     };
 
-    const drawStream = () => {
+    const hasActiveThread = () => {
+      if (!activeConversationId) return false;
       const conv = messages.find((m) => m.id === activeConversationId);
-      if (!conv) {
+      if (!conv) return false;
+      return !!peerIdFromConv(conv);
+    };
+
+    const updateChatChrome = () => {
+      const active = hasActiveThread();
+      if (chatPanelEl) chatPanelEl.classList.toggle("messages-no-thread", !active);
+      if (formEl) formEl.classList.toggle("hidden", !active);
+    };
+
+    const drawStream = () => {
+      updateChatChrome();
+      const conv = messages.find((m) => m.id === activeConversationId);
+      if (!conv || !peerIdFromConv(conv)) {
         headerEl.textContent = "Konuşma Seçiniz";
         if (subHeaderEl) subHeaderEl.textContent = "";
-        if (chatUserAvatarEl) chatUserAvatarEl.textContent = "??";
-        streamEl.innerHTML = '<p style="color:var(--muted)">Bir konuşma seçerek başlayın.</p>';
+        if (chatUserAvatarEl) {
+          chatUserAvatarEl.innerHTML = "";
+          chatUserAvatarEl.textContent = "?";
+        }
+        streamEl.innerHTML = '<p class="messages-empty-hint">Bir konuşma seçerek başlayın.</p>';
         return;
       }
       ensureConvShape(conv);
@@ -341,6 +361,26 @@
       return conv;
     };
 
+    const openChatWithUserId = async (userId) => {
+      const peer = safeUsers().find((u) => String(u.id) === String(userId));
+      if (!peer) return;
+      const conv = findOrCreatePeerConversation(peer);
+      if (!conv) return;
+      activeConversationId = conv.id;
+      if (myId()) {
+        ensureConvShape(conv);
+        conv.unreadByParticipant[myId()] = 0;
+      }
+      conv.unread = 0;
+      await persist();
+      drawConversations();
+      drawStream();
+      updateChatChrome();
+      if (hasActiveThread()) inputEl.focus();
+    };
+
+    window.__openChatWithUserId = openChatWithUserId;
+
     const openPicker = () => {
       if (!pickerOverlay || !pickerListEl || !safeCurrent()) return;
       const others = safeUsers().filter((u) => String(u.id) !== myId());
@@ -377,7 +417,13 @@
       return vis[0]?.id || null;
     };
 
-    if (!activeConversationId) activeConversationId = pickInitialActive();
+    if (window.__pendingOpenChatUserId) {
+      const pendingId = window.__pendingOpenChatUserId;
+      window.__pendingOpenChatUserId = "";
+      void openChatWithUserId(pendingId);
+    } else if (!activeConversationId) {
+      activeConversationId = pickInitialActive();
+    }
 
     listEl.addEventListener("click", async (event) => {
       const row = event.target.closest(".conv-item");
@@ -392,6 +438,7 @@
       await persist();
       drawConversations();
       drawStream();
+      updateChatChrome();
     });
 
     listEl.addEventListener("contextmenu", (event) => {
@@ -422,10 +469,13 @@
             conv.conversationClearTsByUserId[uid] = Date.now();
             conv.unreadByParticipant[uid] = 0;
           }
-          if (activeConversationId === conv.id) activeConversationId = pickInitialActive();
+          if (activeConversationId === conv.id) {
+            activeConversationId = null;
+          }
           await persist();
           drawConversations();
           drawStream();
+          updateChatChrome();
         }
       });
     }
@@ -449,9 +499,10 @@
 
     if (pickerListEl) {
       pickerListEl.addEventListener("click", async (e) => {
+        const row = e.target.closest(".messages-picker-row");
         const btn = e.target.closest(".messages-picker-msg-btn");
-        if (!btn) return;
-        const uid = btn.getAttribute("data-user-id");
+        const uid = btn?.getAttribute("data-user-id") || row?.getAttribute("data-user-id");
+        if (!uid) return;
         const peer = safeUsers().find((u) => String(u.id) === uid);
         if (!peer) return;
         const conv = findOrCreatePeerConversation(peer);
@@ -466,7 +517,8 @@
         closePicker();
         drawConversations();
         drawStream();
-        inputEl.focus();
+        updateChatChrome();
+        if (hasActiveThread()) inputEl.focus();
       });
     }
 
@@ -505,6 +557,11 @@
       refreshActiveIfHidden();
       drawConversations();
       drawStream();
+      if (window.__pendingOpenChatUserId) {
+        const pendingId = window.__pendingOpenChatUserId;
+        window.__pendingOpenChatUserId = "";
+        void openChatWithUserId(pendingId);
+      }
     };
   }
 

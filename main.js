@@ -133,6 +133,21 @@ function registerIpcHandlers() {
     return parseJsonFile(departmentsPath, []);
   });
 
+  safeHandle("departments:save", (_event, departments) => {
+    try {
+      if (!Array.isArray(departments)) {
+        return { ok: false, error: "Geçersiz departman listesi." };
+      }
+      const cleaned = departments
+        .map((d) => String(d || "").trim())
+        .filter(Boolean);
+      writeJsonFile(departmentsPath, cleaned);
+      return { ok: true, count: cleaned.length };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Departmanlar kaydedilemedi." };
+    }
+  });
+
   safeHandle("users:add", (_event, newUser) => {
     try {
       const users = parseJsonFile(usersPath, []);

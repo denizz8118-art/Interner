@@ -29,10 +29,9 @@
             <button class="nav-link" data-view="departmanlar"><span class="nav-icon">▤</span><span class="label">Departmanlar</span></button>
             <button class="nav-link" data-view="mesajlar"><span class="nav-icon">◱</span><span class="label">Mesajlar</span></button>
             <button class="nav-link" data-view="profil"><span class="nav-icon">◌</span><span class="label">Profil</span></button>
-            <button class="nav-link" data-view="kullanicilar"><span class="nav-icon">◍</span><span class="label">Kullanıcılar</span></button>
-            <button class="nav-link" data-view="stajyerlerim"><span class="nav-icon">◎</span><span class="label">Stajyerlerim</span></button>
-            <button class="nav-link" data-view="gorev-olustur"><span class="nav-icon">✛</span><span class="label">Görev Oluştur</span></button>
-            <button class="nav-link" data-view="erisim-ayarlari"><span class="nav-icon">⌘</span><span class="label">Erişim Ayarları</span></button>
+            <button class="nav-link" data-view="kullanicilar" data-requires-role="staff"><span class="nav-icon">◍</span><span class="label">Kullanıcılar</span></button>
+            <button class="nav-link" data-view="stajyerlerim" data-requires-role="staff"><span class="nav-icon">◎</span><span class="label">Stajyerlerim</span></button>
+            <button type="button" class="nav-link nav-link-action" data-action="open-task-create" data-requires-role="staff"><span class="nav-icon">✛</span><span class="label">Görev Oluştur</span></button>
           </nav>
         </div>
         <div class="sidebar-footer">
@@ -46,7 +45,7 @@
         <header class="topbar">
           <div class="topbar-left">
             <button class="icon-btn" id="mobileMenuBtn">☰</button>
-            <strong>Intern Management System</strong>
+            <strong class="topbar-brand">İnterner</strong>
           </div>
           <div class="topbar-right">
             <button class="icon-btn">🔔</button>
@@ -64,6 +63,7 @@
           <p>Stajyerleriniz için yeni bir çalışma veya proje tanımlayın.</p>
         </div>
         <form id="taskCreateForm" class="task-create-form">
+          <div class="task-create-body">
           <div class="task-create-field">
             <label class="small">Görev Başlığı</label>
             <input id="taskTitle" class="input" placeholder="Örn: Frontend Refactoring" required />
@@ -74,11 +74,7 @@
             <textarea id="taskDescription" class="input task-create-textarea" placeholder="Görevin kapsamını ve beklentilerinizi detaylandırın..." required></textarea>
           </div>
 
-          <div class="task-create-grid">
-            <div class="task-create-field">
-              <label class="small">Stajyer Seçimi</label>
-              <input id="taskUsers" class="input" placeholder="Örn: Ahmet Yılmaz, Elif Kaya" required />
-            </div>
+          <div class="task-create-grid task-create-grid-2">
             <div class="task-create-field">
               <label class="small">Öncelik Durumu</label>
               <select id="taskPriority" class="input" required>
@@ -88,35 +84,54 @@
                 <option value="Kritik">Kritik</option>
               </select>
             </div>
+            <div class="task-create-field">
+              <label class="small">Süre Başlangıcı</label>
+              <select id="taskStartMode" class="input">
+                <option value="assigned">Atandığında Başlasın</option>
+                <option value="accepted">Kabul Edildiğinde Başlasın</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="task-create-field task-create-assignee-block">
+            <div class="task-create-assignee-head">
+              <label class="small">Stajyer / .dev Seçimi</label>
+              <button type="button" id="taskAssignAllBtn" class="btn-ghost task-assign-all-btn">Hepsini Görevlendir</button>
+            </div>
+            <div id="taskAssigneePicker" class="task-assignee-picker"></div>
+            <input type="hidden" id="taskUsers" value="" />
           </div>
 
           <div class="task-create-note">
             <span>ⓘ Kritik görevler için teslim tarihi zorunludur.</span>
-            <label class="small">Teslim Tarihi</label>
-            <input id="taskDueDate" type="date" class="input" />
+            <div class="task-date-picker-wrap">
+              <label class="small">Teslim Tarihi</label>
+              <button type="button" id="taskDueDateBtn" class="task-date-trigger">
+                <span id="taskDueDateLabel">Tarih seçin</span>
+                <span class="task-date-trigger-icon" aria-hidden="true">▾</span>
+              </button>
+              <input type="hidden" id="taskDueDate" value="" />
+              <div id="taskDatePopover" class="task-date-popover hidden" role="dialog" aria-label="Tarih seçici"></div>
+            </div>
           </div>
 
           <div class="task-create-field">
             <label class="small">Dosya Ekleri</label>
-            <div class="task-create-upload">
+            <div id="taskFileDropZone" class="task-create-upload">
+              <input id="taskFileInput" type="file" class="task-file-input-hidden" accept=".pdf,.png,.jpg,.jpeg" multiple />
               <div class="task-create-upload-icon">⇪</div>
-              <p>Dosyayı buraya sürükleyin veya seçin</p>
+              <p>Dosyayı buraya sürükleyin veya <button type="button" id="taskFileBrowseBtn" class="task-file-browse">dosya seçin</button></p>
               <small>Maksimum dosya boyutu: 25MB (PDF, PNG, JPG)</small>
             </div>
-          </div>
-
-          <div class="task-create-extra">
-            <label class="small">Süre Başlangıcı</label>
-            <select id="taskStartMode" class="input">
-              <option value="assigned">Atandığında Başlasın</option>
-              <option value="accepted">Kabul Edildiğinde Başlasın</option>
-            </select>
+            <ul id="taskFileList" class="task-file-list"></ul>
+            <input type="hidden" id="taskAttachment" value="" />
           </div>
 
           <p id="taskModalError" class="error-text"></p>
+          </div>
           <div class="task-create-actions">
-            <button type="button" id="closeTaskModal" class="btn-ghost">İptal</button>
-            <button type="submit" class="btn-primary">Görevi Oluştur</button>
+            <button type="button" id="closeTaskModal" class="btn-ghost">İptal Et</button>
+            <button type="submit" class="btn-primary">Görevi Ata</button>
           </div>
         </form>
       </div>
@@ -178,8 +193,111 @@
         </div>
 
         <div class="task-detail-actions">
-          <button class="task-detail-btn task-detail-btn-ghost">Erteleme Talep Et</button>
-          <button class="task-detail-btn task-detail-btn-primary">Onaya Gönder <span>▷</span></button>
+          <button type="button" id="taskDetailPostponeBtn" class="task-detail-btn task-detail-btn-ghost">Erteleme Talep Et</button>
+          <button type="button" id="taskDetailSubmitBtn" class="task-detail-btn task-detail-btn-primary">Göreve Başla <span>▷</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="taskCompleteModal" class="modal-overlay hidden">
+      <div class="modal-card task-flow-modal task-complete-modal">
+        <button type="button" id="closeTaskCompleteModal" class="task-flow-close" aria-label="Kapat">✕</button>
+        <div class="task-flow-head">
+          <div class="task-flow-icon task-flow-icon-success">✓</div>
+          <div>
+            <h3>Görevi Tamamla</h3>
+            <p>Çalışmalarınızı yükleyin ve mentora gönderin.</p>
+          </div>
+        </div>
+        <form id="taskCompleteForm" class="task-flow-form">
+          <input type="hidden" id="taskCompleteTaskId" value="" />
+          <div class="task-flow-field">
+            <label class="small">DOSYA YÜKLE</label>
+            <div id="taskCompleteFileDrop" class="task-flow-drop">
+              <input id="taskCompleteFileInput" type="file" class="task-file-input-hidden" accept=".pdf,.zip,.png,.jpg,.jpeg" multiple />
+              <div class="task-flow-drop-icon">☁</div>
+              <p>Dosyaları sürükleyip bırakın veya <button type="button" id="taskCompleteFileBrowse" class="task-file-browse">Göz Atın</button></p>
+              <small>PDF, ZIP, PNG veya JPG (Maks. 25MB)</small>
+            </div>
+            <ul id="taskCompleteFileList" class="task-file-list"></ul>
+          </div>
+          <div class="task-flow-field">
+            <label class="small">ÇÖZÜM BAĞLANTISI</label>
+            <div class="task-flow-input-icon-wrap">
+              <span class="task-flow-input-icon">🔗</span>
+              <input id="taskCompleteLink" class="input" type="url" placeholder="GitHub repo veya çalışma linki ekleyin..." />
+            </div>
+          </div>
+          <div class="task-flow-field">
+            <label class="small">STAJYER NOTU</label>
+            <textarea id="taskCompleteNote" class="input task-flow-textarea" placeholder="Görevi tamamlarken karşılaştığınız zorluklar veya eklemek istediğiniz detaylar..."></textarea>
+          </div>
+          <p id="taskCompleteError" class="error-text"></p>
+          <div class="task-flow-foot">
+            <span class="task-flow-hint">ⓘ Gönderim sonrası düzenleme yapılamaz.</span>
+            <div class="task-flow-foot-actions">
+              <button type="button" id="cancelTaskComplete" class="btn-ghost">Vazgeç</button>
+              <button type="submit" class="btn-primary task-flow-submit-glow">Görevi Bitir <span>✓✓</span></button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="taskPostponeModal" class="modal-overlay hidden">
+      <div class="modal-card task-flow-modal task-postpone-modal">
+        <button type="button" id="closeTaskPostponeModal" class="task-flow-close" aria-label="Kapat">✕</button>
+        <div class="task-postpone-layout">
+          <aside class="task-postpone-side">
+            <p class="task-postpone-crumb">Görevlerim › <span id="taskPostponeBreadcrumb">-</span> › Erteleme Talebi</p>
+            <h3>Erteleme Talebi Oluştur</h3>
+            <p class="task-postpone-lead">Belirlenen teslim tarihini geçerli bir mazeretle ötelemek için formu doldurun.</p>
+            <div class="task-postpone-info-card">
+              <span class="small">MEVCUT GÖREV</span>
+              <div><span class="task-postpone-label">GÖREV ADI</span><strong id="taskPostponeTaskName">-</strong></div>
+              <div><span class="task-postpone-label">MEVCUT TESLİM</span><strong id="taskPostponeCurrentDue">-</strong></div>
+              <div><span class="task-postpone-label">ÖNCELİK</span><strong id="taskPostponePriority">-</strong></div>
+            </div>
+            <div class="task-postpone-reminder">
+              <span>💡</span>
+              <p>Erteleme talepleri mentorunuz tarafından değerlendirildikten sonra onaylanır veya reddedilir.</p>
+            </div>
+          </aside>
+          <form id="taskPostponeForm" class="task-postpone-form">
+            <input type="hidden" id="taskPostponeTaskId" value="" />
+            <div class="task-flow-field">
+              <label class="small">YENİ TESLİM TARİHİ</label>
+              <div class="task-date-picker-wrap">
+                <button type="button" id="taskPostponeDateBtn" class="task-date-trigger">
+                  <span id="taskPostponeDateLabel">Tarih seçin</span>
+                  <span class="task-date-trigger-icon">▾</span>
+                </button>
+                <input type="hidden" id="taskPostponeNewDate" value="" />
+                <div id="taskPostponeDatePopover" class="task-date-popover hidden"></div>
+              </div>
+            </div>
+            <div class="task-flow-field">
+              <label class="small">ERTELEME NEDENİ</label>
+              <select id="taskPostponeReason" class="input" required>
+                <option value="">Neden seçin...</option>
+                <option value="Teknik zorluk">Teknik zorluk</option>
+                <option value="Kaynak eksikliği">Kaynak eksikliği</option>
+                <option value="Hastalık / sağlık">Hastalık / sağlık</option>
+                <option value="Diğer görev yoğunluğu">Diğer görev yoğunluğu</option>
+                <option value="Diğer">Diğer</option>
+              </select>
+            </div>
+            <div class="task-flow-field">
+              <label class="small">MAZERET DETAYLARI</label>
+              <textarea id="taskPostponeDetails" class="input task-flow-textarea" minlength="50" placeholder="Lütfen mentorunuzun durumu tam olarak anlayabilmesi için detaylı açıklama yapın..." required></textarea>
+              <span class="task-postpone-min">Minimum 50 karakter</span>
+            </div>
+            <p id="taskPostponeError" class="error-text"></p>
+            <div class="task-postpone-form-actions">
+              <button type="button" id="cancelTaskPostpone" class="btn-ghost">İptal</button>
+              <button type="submit" class="btn-primary task-flow-submit-glow">Talebi Gönder <span>➤</span></button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -237,10 +355,11 @@
               <span>YETKİ / ROL</span>
               <select id="newUserRole" class="input" required>
                 <option value="">Rol Seçiniz</option>
-                <option value="ADMIN">Admin</option>
+                <option value="ADMIN">Personel</option>
                 <option value="LEADER">Lider</option>
                 <option value="MANAGER">Müdür</option>
                 <option value="STAJYER">Stajyer</option>
+                <option value="DEV">.dev</option>
               </select>
             </label>
           </div>
@@ -288,8 +407,9 @@
               <span class="small">ROL</span>
               <select id="userEditRole" class="input" required>
                 <option value="STAJYER">Stajyer</option>
+                <option value="DEV">.dev</option>
                 <option value="LEADER">Lider</option>
-                <option value="ADMIN">Admin</option>
+                <option value="ADMIN">Personel</option>
                 <option value="MANAGER">Müdür</option>
               </select>
             </label>
@@ -340,6 +460,53 @@
           <div class="user-delete-actions-right">
             <button id="cancelUserDelete" type="button" class="btn-ghost">İptal</button>
             <button id="confirmUserDelete" type="button" class="btn-danger" disabled>Kullanıcıyı Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="requestQueueModal" class="modal-overlay hidden">
+      <div class="modal-card request-queue-modal">
+        <h3>Sıraya Al</h3>
+        <p id="requestQueueDescription">Bu görevi sıraya almak istediğinize emin misiniz? Onayladıktan sonra sıraya alma iptal edilemez.</p>
+        <div class="request-queue-actions">
+          <button type="button" id="cancelRequestQueue" class="btn-ghost">Vazgeç</button>
+          <button type="button" id="confirmRequestQueue" class="btn-primary">Sıraya Al</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="departmentAddModal" class="modal-overlay hidden">
+      <div class="modal-card department-add-modal">
+        <h3>Yeni Departman</h3>
+        <label class="small">Departman Adı</label>
+        <input id="departmentAddName" class="input" placeholder="Örn: Ürün Tasarımı" />
+        <p id="departmentAddError" class="error-text"></p>
+        <div class="department-add-actions">
+          <button type="button" id="cancelDepartmentAdd" class="btn-ghost">İptal</button>
+          <button type="button" id="confirmDepartmentAdd" class="btn-primary">Ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="requestRejectModal" class="modal-overlay hidden">
+      <div class="modal-card request-reject-modal">
+        <div class="request-reject-head">
+          <h3>Görevi Reddet</h3>
+          <p class="request-reject-lead">Bu görevi reddetmek üzeresiniz.</p>
+          <div class="request-reject-info">
+            <div><span class="request-reject-label">Atayan</span><strong id="requestRejectSender">-</strong></div>
+            <div><span class="request-reject-label">Görev</span><strong id="requestRejectTaskTitle">-</strong></div>
+          </div>
+        </div>
+        <div class="request-reject-actions">
+          <label class="request-reject-check">
+            <input id="requestRejectConfirmCheck" type="checkbox" />
+            <span>Görevi reddetmek istediğimi onaylıyorum</span>
+          </label>
+          <div class="request-reject-actions-right">
+            <button id="cancelRequestReject" type="button" class="btn-ghost">Vazgeç</button>
+            <button id="confirmRequestReject" type="button" class="btn-danger" disabled>Reddet</button>
           </div>
         </div>
       </div>
