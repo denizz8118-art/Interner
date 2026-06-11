@@ -3,6 +3,11 @@ dist/
 build/
 coverage/
 
+# Veri katmanı: kişisel veri ve kimlik bilgileri repoya girmez
+data/
+data_backup_*/
+pocketbase/
+
 .env
 .env.*
 !.env.example

@@ -276,21 +276,25 @@
                 <div id="taskPostponeDatePopover" class="task-date-popover hidden"></div>
               </div>
             </div>
-            <div class="task-flow-field">
+            <div class="task-flow-field task-postpone-reason-block">
               <label class="small">ERTELEME NEDENİ</label>
               <select id="taskPostponeReason" class="input" required>
-                <option value="">Neden seçin...</option>
                 <option value="Teknik zorluk">Teknik zorluk</option>
                 <option value="Kaynak eksikliği">Kaynak eksikliği</option>
                 <option value="Hastalık / sağlık">Hastalık / sağlık</option>
                 <option value="Diğer görev yoğunluğu">Diğer görev yoğunluğu</option>
                 <option value="Diğer">Diğer</option>
               </select>
+              <div id="taskPostponeOtherWrap" class="task-postpone-other-wrap hidden">
+                <label class="small">SEBEP (DİĞER)</label>
+                <input id="taskPostponeOtherReason" class="input" type="text" placeholder="Lütfen sebebi yazın..." minlength="5" />
+                <span class="task-postpone-min">Minimum 5 karakter</span>
+              </div>
             </div>
-            <div class="task-flow-field">
+            <div id="taskPostponeDetailsWrap" class="task-flow-field task-postpone-details-wrap">
               <label class="small">MAZERET DETAYLARI</label>
-              <textarea id="taskPostponeDetails" class="input task-flow-textarea" minlength="50" placeholder="Lütfen mentorunuzun durumu tam olarak anlayabilmesi için detaylı açıklama yapın..." required></textarea>
-              <span class="task-postpone-min">Minimum 50 karakter</span>
+              <textarea id="taskPostponeDetails" class="input task-flow-textarea" placeholder="Lütfen mentorunuzun durumu tam olarak anlayabilmesi için detaylı açıklama yapın..." required></textarea>
+              <span class="task-postpone-min">Minimum 10 karakter</span>
             </div>
             <p id="taskPostponeError" class="error-text"></p>
             <div class="task-postpone-form-actions">

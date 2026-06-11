@@ -4705,6 +4705,34 @@ body.modal-open .topbar {
   margin-top: 8px;
 }
 
+.task-postpone-other-wrap {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.task-postpone-other-wrap.hidden {
+  display: none;
+}
+
+.task-postpone-details-wrap.with-other-reason {
+  margin-top: 6px;
+}
+
+.request-actions-intern {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tasks-v2-card.postpone-pending .tasks-v2-state {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.tasks-v2-card.postpone-pending .tasks-v2-deadline.warning {
+  color: #fbbf24;
+}
+
 @media (max-width: 900px) {
   .task-postpone-layout {
     grid-template-columns: 1fr;

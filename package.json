@@ -4,7 +4,15 @@
   "description": "Stajyer Yonetim Sistemi Electron masaustu uygulamasi",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pb:serve": "pocketbase\\pocketbase.exe serve --dir pocketbase/pb_data --http 127.0.0.1:8090",
+    "pb:setup": "node scripts/setup-pocketbase.js",
+    "pb:migrate": "node scripts/migrate-to-pocketbase.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "eventsource": "^4.1.0",
+    "pocketbase": "^0.27.0"
   },
   "devDependencies": {
     "electron": "^37.10.3"

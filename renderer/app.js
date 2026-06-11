@@ -640,7 +640,16 @@ async function renderRequests() {
       const remainingDaysRaw = req.dueDate ? daysLeft(req.dueDate) : null;
       const hasFiniteDue = Number.isFinite(remainingDaysRaw);
       const remainingDays = hasFiniteDue ? remainingDaysRaw : null;
-      const dueText = hasFiniteDue ? `${remainingDays} Gün Kaldı` : req.dueDate ? `Son Tarih: ${req.dueDate}` : "Son tarih yok";
+      const isPostponeReq = req.requestKind === "postponement";
+      const isCompletionReq = req.requestKind === "completion";
+      const isInternReq = isPostponeReq || isCompletionReq;
+      const dueText = isPostponeReq
+        ? `Yeni teslim: ${formatDisplayDate(req.dueDate)}${req.previousDueDate ? ` (önceki: ${formatDisplayDate(req.previousDueDate)})` : ""}`
+        : hasFiniteDue
+          ? `${remainingDays} Gün Kaldı`
+          : req.dueDate
+            ? `Son Tarih: ${req.dueDate}`
+            : "Son tarih yok";
       const priorityClass =
         req.priority === "Kritik"
           ? "kritik"
@@ -682,11 +691,16 @@ async function renderRequests() {
           <span class="requests-v2-meta-icon">${queued ? "◴" : "◷"}</span>
           <span>${queued ? "İşleme alınmayı bekliyor" : dueText}</span>
         </div>
-        <div class="request-actions">
-          <button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">${queued ? "Şimdi Başlat" : "Kabul Et"}</button>
-          ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-reject" data-action="reject" data-id="${req.id}">Görevi Reddet</button>`}
-          ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-queue" data-action="hold" data-id="${req.id}"><span class="requests-v2-btn-icon">⊞</span>Sıraya Al</button>`}
-          ${queued ? `<button class="btn-ghost requests-v2-btn" data-action="close" data-id="${req.id}"><span class="requests-v2-btn-icon">✕</span>Talebi Kapat</button>` : ""}
+        <div class="request-actions ${isInternReq ? "request-actions-intern" : ""}">
+          ${
+            isInternReq && !queued
+              ? `<button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">Onayla</button>
+                 <button class="btn-ghost requests-v2-btn btn-reject" data-action="reject" data-id="${req.id}">${isPostponeReq ? "Ertelemeyi Reddet" : "Reddet"}</button>`
+              : `<button class="btn-primary requests-v2-btn" data-action="accept" data-id="${req.id}">${queued ? "Şimdi Başlat" : "Kabul Et"}</button>
+                 ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-reject" data-action="reject" data-id="${req.id}">Görevi Reddet</button>`}
+                 ${queued ? "" : `<button class="btn-ghost requests-v2-btn btn-queue" data-action="hold" data-id="${req.id}"><span class="requests-v2-btn-icon">⊞</span>Sıraya Al</button>`}
+                 ${queued ? `<button class="btn-ghost requests-v2-btn" data-action="close" data-id="${req.id}"><span class="requests-v2-btn-icon">✕</span>Talebi Kapat</button>` : ""}`
+          }
         </div>
       </article>`;
     })
@@ -704,6 +718,26 @@ async function renderRequests() {
       return;
     }
     if (actionEl.dataset.action === "accept") {
+      if (req.requestKind === "postponement") {
+        const task = findTaskByRelatedId(req.relatedTaskId);
+        if (task) {
+          task.dueDate = req.dueDate || task.dueDate;
+          task.postponementStatus = "";
+          task.postponementReason = "";
+        }
+        requests = requests.filter((r) => r.id !== req.id);
+        await Promise.all([window.api.saveRequests(requests), window.api.saveTasks(tasks)]);
+        renderRequests();
+        return;
+      }
+      if (req.requestKind === "completion") {
+        const task = findTaskByRelatedId(req.relatedTaskId);
+        if (task) task.status = "Tamamlanan";
+        requests = requests.filter((r) => r.id !== req.id);
+        await Promise.all([window.api.saveRequests(requests), window.api.saveTasks(tasks)]);
+        renderRequests();
+        return;
+      }
       const acceptedAt = req.startMode === "assigned" ? req.createdAt || new Date().toISOString() : new Date().toISOString();
       tasks.unshift({ ...req, taskId: `task-${req.id}`, status: "Devam Eden", acceptedAt, postponementStatus: "", postponementReason: "" });
       requests = requests.filter((r) => r.id !== req.id);
@@ -771,6 +805,15 @@ function closeRequestRejectModalFn() {
 
 async function handleRequestRejectConfirm() {
   if (!selectedRejectRequestId) return;
+  const req = requests.find((r) => String(r.id) === selectedRejectRequestId);
+  if (req?.requestKind === "postponement") {
+    const task = findTaskByRelatedId(req.relatedTaskId);
+    if (task) {
+      task.postponementStatus = "Reddedildi";
+      task.postponementReason = "";
+      await window.api.saveTasks(tasks);
+    }
+  }
   requests = requests.filter((r) => String(r.id) !== selectedRejectRequestId);
   await window.api.saveRequests(requests);
   closeRequestRejectModalFn();
@@ -830,10 +873,52 @@ async function handleRequestCloseConfirm() {
   renderRequests();
 }
 
+function toIsoLocalDate(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+}
+
+function getPostponeMinIso(task) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let min = today;
+  if (task?.dueDate) {
+    const due = new Date(task.dueDate);
+    if (!Number.isNaN(due.getTime())) {
+      due.setHours(0, 0, 0, 0);
+      due.setDate(due.getDate() + 1);
+      if (due > min) min = due;
+    }
+  }
+  return toIsoLocalDate(min);
+}
+
+function findTaskByRelatedId(relatedTaskId) {
+  const id = String(relatedTaskId || "");
+  if (!id) return null;
+  return tasks.find((t) => String(t.taskId) === id || String(t.id) === id) || null;
+}
+
+function syncPostponeReasonUI() {
+  const reasonSel = document.getElementById("taskPostponeReason");
+  const otherWrap = document.getElementById("taskPostponeOtherWrap");
+  const detailsWrap = document.getElementById("taskPostponeDetailsWrap");
+  const otherInput = document.getElementById("taskPostponeOtherReason");
+  const isOther = reasonSel?.value === "Diğer";
+  if (otherWrap) otherWrap.classList.toggle("hidden", !isOther);
+  if (detailsWrap) detailsWrap.classList.toggle("with-other-reason", isOther);
+  if (otherInput) {
+    otherInput.required = isOther;
+    if (!isOther) otherInput.value = "";
+  }
+}
+
 function buildTaskCard(task) {
+  const postponePending = task.postponementStatus === "Bekliyor";
   const left = daysLeft(task.dueDate);
   const business = businessDaysBetween(task.acceptedAt || new Date().toISOString());
-  const statusLabel = normalizeTaskStatusLabel(task.status);
+  const statusLabel = postponePending ? "Yanıt bekleniyor" : normalizeTaskStatusLabel(task.status);
   const priorityClass =
     task.priority === "Kritik"
       ? "kritik"
@@ -842,8 +927,18 @@ function buildTaskCard(task) {
         : task.priority === "Orta"
           ? "orta"
           : "dusuk";
-  const deadlineText = left === null ? "Belirli deadline yok" : `${left} Gün Kaldı`;
-  const deadlineClass = left !== null && left <= 3 ? "danger" : left !== null && left <= 6 ? "warning" : "";
+  const deadlineText = postponePending
+    ? "Erteleme talep edildi"
+    : left === null
+      ? "Belirli deadline yok"
+      : `${left} Gün Kaldı`;
+  const deadlineClass = postponePending
+    ? "warning"
+    : left !== null && left <= 3
+      ? "danger"
+      : left !== null && left <= 6
+        ? "warning"
+        : "";
   const cardToneClass =
     deadlineClass === "danger"
       ? "due-danger"
@@ -851,7 +946,7 @@ function buildTaskCard(task) {
         ? "due-warning"
         : `priority-${priorityClass}`;
   return `
-  <article class="task-card tasks-v2-card ${cardToneClass}" data-task-id="${task.taskId}">
+  <article class="task-card tasks-v2-card ${cardToneClass} ${postponePending ? "postpone-pending" : ""}" data-task-id="${task.taskId}">
     <div class="tasks-v2-card-top">
       <div class="tasks-v2-card-top-left">
         <span class="tasks-v2-priority-pill ${priorityClass}">${task.priority || "Düşük"}</span>
@@ -1059,6 +1154,8 @@ function closeTaskPostponeModalFn() {
   const err = document.getElementById("taskPostponeError");
   if (err) err.textContent = "";
   resetPostponeDatePicker();
+  const otherWrap = document.getElementById("taskPostponeOtherWrap");
+  if (otherWrap) otherWrap.classList.add("hidden");
 }
 
 function resetPostponeDatePicker() {
@@ -1074,13 +1171,9 @@ function renderPostponeDatePopover() {
   const pop = document.getElementById("taskPostponeDatePopover");
   const hidden = document.getElementById("taskPostponeNewDate");
   if (!pop) return;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let minDate = today;
-  if (activeTaskFlowTask?.dueDate) {
-    const d = new Date(activeTaskFlowTask.dueDate);
-    if (!Number.isNaN(d.getTime()) && d > minDate) minDate = d;
-  }
+  const minIso = getPostponeMinIso(activeTaskFlowTask);
+  const minParts = minIso.split("-").map(Number);
+  const minDate = new Date(minParts[0], minParts[1] - 1, minParts[2]);
   if (!postponeDatePickerState.year) {
     postponeDatePickerState.year = minDate.getFullYear();
     postponeDatePickerState.month = minDate.getMonth();
@@ -1096,8 +1189,7 @@ function renderPostponeDatePopover() {
   for (let i = 0; i < startPad; i++) cells += '<span class="task-date-day empty"></span>';
   for (let day = 1; day <= daysInMonth; day++) {
     const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const dt = new Date(year, month, day);
-    const disabled = dt < minDate;
+    const disabled = iso < minIso;
     const isSel = selected === iso;
     cells += `<button type="button" class="task-date-day ${disabled ? "disabled" : ""} ${isSel ? "selected" : ""}" data-iso="${iso}" ${disabled ? "disabled" : ""}>${day}</button>`;
   }
@@ -1110,7 +1202,9 @@ function renderPostponeDatePopover() {
     <div class="task-date-weekdays">${weekdays.map((w) => `<span>${w}</span>`).join("")}</div>
     <div class="task-date-grid">${cells}</div>`;
   pop.querySelectorAll("[data-postpone-nav]").forEach((btn) => {
-    btn.onclick = () => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       postponeDatePickerState.month += Number(btn.getAttribute("data-postpone-nav"));
       if (postponeDatePickerState.month > 11) {
         postponeDatePickerState.month = 0;
@@ -1120,26 +1214,29 @@ function renderPostponeDatePopover() {
         postponeDatePickerState.year -= 1;
       }
       renderPostponeDatePopover();
-    };
+    });
   });
   pop.querySelectorAll(".task-date-day:not(.disabled):not(.empty)").forEach((btn) => {
-    btn.onclick = () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       const iso = btn.getAttribute("data-iso");
       if (hidden) hidden.value = iso;
       const label = document.getElementById("taskPostponeDateLabel");
       if (label) label.textContent = formatTaskDateLabel(iso);
       pop.classList.add("hidden");
-    };
+    });
   });
 }
 
 function initPostponeDatePicker() {
   const btn = document.getElementById("taskPostponeDateBtn");
   const pop = document.getElementById("taskPostponeDatePopover");
+  const wrap = btn?.closest(".task-date-picker-wrap");
   if (!btn || !pop) return;
   postponeDatePickerState = { year: 0, month: 0 };
   if (!postponeDatePickerBound) {
     postponeDatePickerBound = true;
+    pop.addEventListener("click", (e) => e.stopPropagation());
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (pop.classList.contains("hidden")) {
@@ -1150,9 +1247,9 @@ function initPostponeDatePicker() {
       }
     });
     document.addEventListener("click", (e) => {
-      if (!pop.classList.contains("hidden") && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-        pop.classList.add("hidden");
-      }
+      if (pop.classList.contains("hidden")) return;
+      if (wrap?.contains(e.target)) return;
+      pop.classList.add("hidden");
     });
   }
 }
@@ -1172,7 +1269,14 @@ function openTaskPostponeModal(task) {
   set("taskPostponeCurrentDue", formatDisplayDate(task.dueDate));
   set("taskPostponePriority", task.priority || "-");
   resetPostponeDatePicker();
+  postponeDatePickerState = { year: 0, month: 0 };
   initPostponeDatePicker();
+  syncPostponeReasonUI();
+  const reasonSel = document.getElementById("taskPostponeReason");
+  if (reasonSel && !reasonSel.dataset.bound) {
+    reasonSel.dataset.bound = "1";
+    reasonSel.addEventListener("change", syncPostponeReasonUI);
+  }
   if (modal) {
     modal.classList.remove("hidden");
     document.body.classList.add("modal-open");
@@ -1188,19 +1292,30 @@ async function handleTaskPostponeSubmit(event) {
   if (!task) return;
   const newDate = document.getElementById("taskPostponeNewDate")?.value || "";
   const reason = document.getElementById("taskPostponeReason")?.value || "";
+  const otherReason = document.getElementById("taskPostponeOtherReason")?.value.trim() || "";
   const details = document.getElementById("taskPostponeDetails")?.value.trim() || "";
+  const minIso = getPostponeMinIso(task);
   if (!newDate) {
     if (err) err.textContent = "Yeni teslim tarihi seçin.";
+    return;
+  }
+  if (newDate < minIso) {
+    if (err) err.textContent = "Geçmiş veya mevcut teslim tarihinden önceki bir gün seçilemez.";
     return;
   }
   if (!reason) {
     if (err) err.textContent = "Erteleme nedeni seçin.";
     return;
   }
-  if (details.length < 50) {
-    if (err) err.textContent = "Mazeret detayı en az 50 karakter olmalı.";
+  if (reason === "Diğer" && otherReason.length < 5) {
+    if (err) err.textContent = "Diğer seçildiğinde sebep en az 5 karakter olmalı.";
     return;
   }
+  if (details.length < 10) {
+    if (err) err.textContent = "Mazeret detayı en az 10 karakter olmalı.";
+    return;
+  }
+  const reasonFinal = reason === "Diğer" ? `Diğer: ${otherReason}` : reason;
   const assigner = resolveTaskAssigner(task);
   if (!assigner.id) {
     if (err) err.textContent = "Görevi atayan kişi bulunamadı.";
@@ -1209,7 +1324,7 @@ async function handleTaskPostponeSubmit(event) {
   const description = buildInternRequestDescription(task, [
     `Mevcut teslim: ${formatDisplayDate(task.dueDate)}`,
     `Yeni teslim: ${formatDisplayDate(newDate)}`,
-    `Neden: ${reason}`,
+    `Neden: ${reasonFinal}`,
     `Detay: ${details}`
   ]);
   await pushRequestToAssigner({
@@ -1221,18 +1336,18 @@ async function handleTaskPostponeSubmit(event) {
     senderId: currentUser.id,
     assignerId: assigner.id,
     assignerName: assigner.name,
-    relatedTaskId: task.taskId || "",
+    relatedTaskId: task.taskId || task.id || "",
     department: currentUser.departman || task.department || "-",
     priority: task.priority || "Orta",
     dueDate: newDate,
     previousDueDate: task.dueDate || "",
-    postponeReason: reason,
+    postponeReason: reasonFinal,
     postponeDetails: details,
     status: "Yanit Bekliyor",
     createdAt: new Date().toISOString()
   });
   task.postponementStatus = "Bekliyor";
-  task.postponementReason = reason;
+  task.postponementReason = reasonFinal;
   await window.api.saveTasks(tasks);
   closeTaskPostponeModalFn();
   if (activeViewKey === "gorevlerim") renderTasks();
