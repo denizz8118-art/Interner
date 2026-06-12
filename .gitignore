@@ -8,6 +8,11 @@ data/
 data_backup_*/
 pocketbase/
 
+# Cursor / AI geliştirme araçları: production'da işlevi yok
+.cursor/
+.cursorrules
+AGENTS-README.md
+
 .env
 .env.*
 !.env.example
