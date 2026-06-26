@@ -62,6 +62,15 @@ const COLLECTIONS = [
       { name: "sortIndex", type: "number" }
     ],
     indexes: ["CREATE UNIQUE INDEX idx_user_photos_userId ON user_photos (userId)"]
+  },
+  {
+    name: "intern_portfolios",
+    fields: [
+      { name: "appId", type: "text", required: true },
+      { name: "data", type: "json", maxSize: JSON_MAX_SIZE },
+      { name: "sortIndex", type: "number" }
+    ],
+    indexes: ["CREATE UNIQUE INDEX idx_intern_portfolios_appId ON intern_portfolios (appId)"]
   }
 ];
 

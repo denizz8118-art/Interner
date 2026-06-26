@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tüm Stajyerler - Staj Yönetimi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"primary-fixed-dim": "#c4c0ff", "on-tertiary-container": "#461f00", "inverse-on-surface": "#302f39", "tertiary-container": "#db761f", "on-error": "#690005", "tertiary-fixed": "#ffdcc6", "on-primary": "#2000a4", "surface-container-high": "#2a2933", "on-surface": "#e4e1ee", "secondary-fixed-dim": "#65dca4", "primary-fixed": "#e3dfff", error: "#ffb4ab", "surface-tint": "#c4c0ff", primary: "#c4c0ff", "secondary-fixed": "#82f9be", background: "#13121b", "on-surface-variant": "#c7c4d8", "surface-container-highest": "#35343e", "on-secondary-fixed": "#002113", secondary: "#65dca4", "on-primary-fixed": "#100069", "surface-bright": "#393842", "on-tertiary-fixed-variant": "#713700", "inverse-primary": "#4f44e2", outline: "#918fa1", "surface-container": "#1f1f28", "on-error-container": "#ffdad6", tertiary: "#ffb785", "on-secondary": "#003823", "outline-variant": "#464555", "tertiary-fixed-dim": "#ffb785", "error-container": "#93000a", "surface-dim": "#13121b", "secondary-container": "#20a471", "on-background": "#e4e1ee", "on-secondary-fixed-variant": "#005235", "surface-variant": "#35343e", surface: "#13121b", "primary-container": "#8781ff", "surface-container-lowest": "#0e0d16", "on-tertiary": "#502500", "on-primary-fixed-variant": "#3622ca", "on-secondary-container": "#00311e", "inverse-surface": "#e4e1ee", "on-primary-container": "#1b0091", "surface-container-low": "#1b1b24", "on-tertiary-fixed": "#301400"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {base_unit: "8px", container_padding: "24px", card_gap: "20px", sidebar_collapsed: "80px", gutter: "16px", sidebar_width: "280px"}, fontFamily: {"label-bold": ["Manrope"], "label-md": ["Manrope"], h2: ["Manrope"], "body-lg": ["Manrope"], "body-md": ["Manrope"], h3: ["Manrope"], h1: ["Manrope"], headline: ["Manrope"], display: ["Manrope"], body: ["Manrope"], label: ["Manrope"]}, fontSize: {"label-bold": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "500"}], h2: ["24px", {lineHeight: "32px", fontWeight: "600"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}], h3: ["20px", {lineHeight: "28px", fontWeight: "600"}], h1: ["32px", {lineHeight: "40px", fontWeight: "700"}]}}}};</script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-screen w-[280px] bg-slate-900 dark:bg-[#1A1D27] rounded-r-lg border-r border-slate-800 sticky top-0 overflow-y-auto z-50">
+<div class="p-6">
+<h1 class="text-xl font-extrabold tracking-tight text-white mb-8">Staj Yönetimi</h1>
+<div class="flex items-center gap-4 mb-8 p-3 rounded-xl bg-white/5">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Kullanıcı Profil Fotoğrafı" class="w-full h-full object-cover" data-alt="Close-up professional headshot of a young male software developer with a friendly smile and glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMJzlpTjOSlvK31mxo2BgBOxki4mII8WyLM2ZSClIiWcsevUl4Ze0wpfQ4Bhqg8a93hjF7ZBmcPvWjECTd49v4YalntLljuE8LJoDPhDOoWnitsIY7lk-PfwroeTGHgXgnRbFArTeed5NaRDT5gT6BK_TQUVosVnTns1m48As4R8-pEuX-S_bW8PAmjhO-GJdUvUjcilqdCHjP3nBWjfCfzVjnlK7luFW4go_QZsipvfFQS7gesLU2S686vWmWUncqDKolGoS8M40"/>
+</div>
+<div class="flex flex-col">
+<span class="font-h3 text-white text-[14px]">Can Yılmaz</span>
+<span class="text-label-md text-slate-400">Yazılım Stajyeri | AR-GE</span>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<!-- Navigation Items -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="text-sm font-medium">Görevlerim</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="inbox">inbox</span>
+<span class="text-sm font-medium">Gelen Talepler</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+<span class="text-sm font-medium">Departmanım</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+<span class="text-sm font-medium">Mesajlar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="text-sm font-medium">Stajyerlerim</span>
+</a>
+<a class="bg-[#6C63FF]/10 text-[#6C63FF] rounded-lg border-r-4 border-[#6C63FF] flex items-center gap-3 px-4 py-3 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person_search" style="font-variation-settings: 'FILL' 1;">person_search</span>
+<span class="text-sm font-medium">Tüm Stajyerler</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span class="text-sm font-medium">Kullanıcılar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="text-sm font-medium">Departmanlar</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-slate-800">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-bold mb-4 active:scale-95 transition-transform">Yeni Görev</button>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="contrast">contrast</span>
+<span class="text-sm font-medium">Tema Değiştir</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="text-sm font-medium">Çıkış Yap</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center h-16 px-6 w-full sticky top-0 z-40 backdrop-blur-md bg-slate-900/95 dark:bg-[#1A1D27]/95 border-b border-slate-800">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-slate-100">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h2 class="font-h2 text-slate-100">Tüm Stajyerler</h2>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative hidden sm:block mr-4">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" data-icon="search">search</span>
+<input class="bg-[#22263A] border-none rounded-lg py-2 pl-10 pr-4 text-sm text-on-surface focus:ring-2 focus:ring-primary-container w-64" placeholder="Stajyer ara..." type="text"/>
+</div>
+<button class="p-2 text-slate-400 hover:bg-slate-800/50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 text-slate-400 hover:bg-slate-800/50 rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-base_unit md:p-container_padding flex-1">
+<!-- Filter Bar (Additional Context) -->
+<div class="flex flex-wrap items-center justify-between mb-8 gap-4">
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-full text-label-md">Hepsi</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-label-md hover:bg-surface-container-highest transition-colors">Yazılım</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-label-md hover:bg-surface-container-highest transition-colors">Elektronik</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-label-md hover:bg-surface-container-highest transition-colors">Üretim</button>
+</div>
+<div class="text-label-md text-slate-500">
+                    Toplam <span class="text-primary font-bold">12</span> stajyer listeleniyor
+                </div>
+</div>
+<!-- Intern Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-card_gap">
+<!-- Intern Card 1 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Headshot of a focused young man wearing professional work attire with a blurred corporate background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfCUKisvuZOSRC8vt_QJ745HwJ3bo6fMB3DC1GSbRwRC6xvu1a4ZzDGBYi-J_4Qao2NxfiF2jKbJlfmft8ZL6osJhw5aid9QGKkiF4tMQSLOAJMYFw4sBUVQDXl2feMeT_7hX2P6nZtBEj_edqO6i4CeItTA_WTUFhxHaOS_xBun9rU_0cNzkfbcc7ITBYXiQin73_HOac4F5v7QO3tOu4AKYjU3KlPcjtfs-wB7Frdg6O3GVYZcBsLoom-RkkjGR0NdAUamwOsRs"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Mert Özkan</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-secondary-container/15 text-secondary rounded-full text-label-bold">Yazılım</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">4 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">React Dashboard geliştiriyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 2. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">CP</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 2 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Portrait of a young professional woman in a bright office setting with soft natural lighting and a confident expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGQcHuzcAQS2gLCbosNPMIp2iviK0FC1aKPlbC1649eIqLJ3scm3ayzpngzdfqgi_cSC3XgPgEAgqzdJbAP6QC_D7ipVU1XQbcZSfqkvda_ACaQCIXfaYISPpPUXvWujftbg2sZ0I_AKvzeBgeegKs1Cqf1rmqfpm4AoKnVSSnTMUQR1pgsC7h16stXjQFPVj-S3Xx5xoCw8q_D6WmbQeO0sDPU0wEJDFuzg-DyCUC2CwTlfbQ9OvyVquPPyd36me8PyK6s2xta6c"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Elif Demir</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-tertiary-container/15 text-tertiary rounded-full text-label-bold">Elektronik</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">2 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">DevOps pipeline düzenliyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 1. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">MK</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 3 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Clear profile photo of a young man wearing a collared shirt in a modern minimalist laboratory environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_rM1ZRQ6nfECa2lgF_raQukitG08AFfRigUQBv_Dxl7THSIPorBmVeDrnYLx98k2H8gFSeYq-KZJV5s2JWiUvxaOE5t4xXv5yEUeBFo_bnal1wjexeCzwMIFV-jV7EvIrRzy-qKXrwn_UER1CrUyqti9XXy8O8KPARQrdVBLRR6g9CzwLi083xlvkWmeT2s-Dh6ne15s3boSfKMa4WJVf_QmKbwSqzivJipzvBWe0K7BVyl41XjWgSY5xAl-CpRmLdUArJN9U-hY"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-slate-600 rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Arda Soydan</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-on-secondary-fixed-variant/20 text-secondary-fixed rounded-full text-label-bold">Üretim</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">5 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">Üretim hattı optimizasyonu</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 3. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">AB</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 4 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Professional studio portrait of a smiling young woman with dark hair against a clean dark grey background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTwXqS21SkuIyzKyD8ESBooKZpQvn33xp3GKJr9k2vx9K-7wwI81eToaOI-ixcJIXukwKjLcKRgElzajfqHtsO9Kk_zMpmGiIDNiSPqF8vN-be83KHnY-AaMmOT0nRJs8qggJkL_qm0z-vzp5fgzNbyBVG5pR1sNZ8fyMiGcIZXzxCLHGJrOe152bH426ZWZtTP_TpHXdeg2YSXbt0XJ8-0EQfY_3Pbjxf3lf9Zs_dlXrdTWQ36LDJnaJfWSC3Tm1dZ5uWBMMqBEU"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Selin Yıldız</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-secondary-container/15 text-secondary rounded-full text-label-bold">Yazılım</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">3 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">Mobil UI testleri yapıyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 2. Hafta</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">SY</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 5 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Outdoor headshot of a young male engineering student wearing a safety vest in a high-tech facility environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoG-tQcTDcJYmHlUj_9T0Dg0k1fp3TmXQkDQYnB3qsw1Zu3HBs5gK-6r99jVqFOSmDDYRgjiGk6lxST5gEPkUIu0yUSO8DsJyeZAn8H9ELDr5VMIWvmnfTT_3TKH0cNEkpE2WjvCevt_rs7akr9-0G7NnTqLWcD26thOxDBBUATk_uUyOJZs19wU6EB4KJXFFfUoGF3fPe5wE1N-vZo1CUga4VEpA6OCTqIh5yDqyu0W-tz_JXhkbog3IvVk_U_sycLjYKUuOx4D8"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-slate-600 rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Bora Çelik</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-on-secondary-fixed-variant/20 text-secondary-fixed rounded-full text-label-bold">Üretim</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">1 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">Kalite kontrol raporu hazırlıyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 4. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">BÇ</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 6 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Professional profile of a young woman in a modern workspace with soft focus technology in the background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPTi2Q_603IetznOBHtSuXHOyCLjxUWm5vpwGaUHO9go8nSlIXOxZ0xh1lEWQ5_uVeVmRv1ywQIs7TiEbG7xYbs9cY5evhVtvaSBK3LWeoS29hCEhH-v1lpINcduf3dH6GaPxjukfGDfO-VQOOpPiKVjS7d0rqwJKLSb-K5KIOjmfo0LgnNxkc86fSU5LVc9tm8qJehl8SEZZ6MZJblwPK1oZan6PSQ4gAcpLvN6NmfQqxyE2mtlcknN0Scd5Q-SyCW5A41UDqXF8"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Deniz Aksoy</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-secondary-container/15 text-secondary rounded-full text-label-bold">Yazılım</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">6 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">API dökümantasyonu güncelliyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 5. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">DA</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 7 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Candid headshot of a young male intern smiling in a collaborative open-plan office space with plants" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBreQa7AFSpIVM53LJMcvMeJzYdGDdE8Uvxo6p_er2e4jSDDOkSOm_pYosdTDkzAuNoW2h_tQmKHVB69Swo8AGDd7IEDrQ9SGydpttON8-23iFjX6r51LaNqj-SQ14nI-YKyFk2oFOVhYLHLoVS5Ledr_XNk2JvLxoX7321Qj7N1-jQeGlznhJM792uQLlJp2luVMAQh2cPhMDmCKABZpwGRdMdBso4DN6WRi-AkdaAEg7zi5Jv7YEAYNaIwiMwQY3wEIk22CKx5-g"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Kaan Uzun</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-tertiary-container/15 text-tertiary rounded-full text-label-bold">Elektronik</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">2 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">Devre kartı tasarımı inceliyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 1. Ay</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">KU</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Intern Card 8 -->
+<div class="bg-surface-container border border-white/5 rounded-xl p-5 hover:shadow-2xl transition-all duration-300 group">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full p-1 border-2 border-primary-container group-hover:scale-105 transition-transform">
+<img alt="Stajyer Avatar" class="w-full h-full object-cover rounded-full bg-surface-variant" data-alt="Professional headshot of a young woman with a smart business casual look in a bright contemporary office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwcySyNVT0H9uppk2CzNMJa7AavrhH_sUTBmfdC2beVon2F0m98kIs5YZLDp06q-f3aexYveXKhxV_DtsuD_eOpJU7_etcumti3Pt67BwFoLIFgBk0ySd7DCWfHm2L7u9sAK7xzEQHOjiUsLw_Ns6eD7sSIc1wOBaxSelA7Q1WVRUMfa-yGSc5Hi-WC6CbjdGe_nnm3blJqcuzAi8ZF1Bj3GXnPTKwVOQvTcONM0pBYDsT6UQYKES89Y0lSqCbsuqrTOrN5y9OcHM"/>
+</div>
+<span class="absolute bottom-1 right-1 w-5 h-5 bg-secondary-fixed rounded-full border-4 border-surface-container"></span>
+</div>
+<h3 class="font-h3 text-white mb-1">Melis Kara</h3>
+<div class="flex flex-wrap justify-center gap-2 mt-2">
+<span class="px-3 py-1 bg-secondary-container/15 text-secondary rounded-full text-label-bold">Yazılım</span>
+<span class="px-3 py-1 bg-primary-container/15 text-primary-fixed-dim rounded-full text-label-bold">4 Aktif Görev</span>
+</div><p class="text-label-md text-on-surface-variant mt-3 italic">Frontend bug fixleri yapıyor</p>
+<div class="mt-6 w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-label-md text-slate-500">Kıdem: 3. Hafta</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface-container bg-slate-700 flex items-center justify-center text-[10px] text-white">MK</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Load More (Contextual UI) -->
+<div class="mt-12 flex justify-center pb-10">
+<button class="flex items-center gap-2 px-6 py-3 border border-slate-700 text-slate-400 rounded-full hover:bg-white/5 transition-all text-label-md">
+<span>Daha Fazla Göster</span>
+<span class="material-symbols-outlined" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-md flex justify-around items-center px-4 z-50">
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="text-[10px] mt-1">Görevler</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined" data-icon="inbox">inbox</span>
+<span class="text-[10px] mt-1">Talepler</span>
+</button>
+<button class="flex flex-col items-center text-[#6C63FF]">
+<span class="material-symbols-outlined" data-icon="person_search" style="font-variation-settings: 'FILL' 1;">person_search</span>
+<span class="text-[10px] mt-1 font-semibold">Stajyerler</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+<span class="text-[10px] mt-1">Mesajlar</span>
+</button>
+<button class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px] mt-1">Ayarlar</span>
+</button>
+</nav>
+</body></html>

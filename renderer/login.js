@@ -5,7 +5,9 @@ const errorText = document.getElementById("errorText");
 const togglePassword = document.getElementById("togglePassword");
 
 togglePassword.addEventListener("click", () => {
-  passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+  const isPassword = passwordInput.type === "password";
+  passwordInput.type = isPassword ? "text" : "password";
+  togglePassword.textContent = isPassword ? "visibility_off" : "visibility";
 });
 
 loginForm.addEventListener("submit", async (event) => {

@@ -203,12 +203,15 @@ async function saveUsersToDb(nextUsers) {
 
 async function findUserRecordByEmail(email) {
   await ensureAuth();
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) return null;
   try {
     return await pb
       .collection("users")
-      .getFirstListItem(pb.filter("email = {:email}", { email: String(email || "").trim().toLowerCase() }));
+      .getFirstListItem(pb.filter("email = {:email}", { email: normalized }));
   } catch (_e) {
-    return null;
+    const records = await pb.collection("users").getFullList();
+    return records.find((r) => String(r.email || "").trim().toLowerCase() === normalized) || null;
   }
 }
 
@@ -257,6 +260,10 @@ function registerIpcHandlers() {
       }
       return { ok: true, user: record.data };
     } catch (error) {
+      const msg = String(error?.message || "");
+      if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED") || msg.includes("Something went wrong")) {
+        return { ok: false, error: "Veritabanına bağlanılamadı. Uygulamayı tamamen kapatıp npm start ile yeniden açın." };
+      }
       return { ok: false, error: error?.message || "Giriş sırasında hata oluştu." };
     }
   });
@@ -419,7 +426,7 @@ function registerIpcHandlers() {
 
   safeHandle("tasks:save", async (_event, tasks) => {
     try {
-      await saveWholesale("tasks", tasks, (t) => t?.id);
+      await saveWholesale("tasks", tasks, (t) => t?.taskId || t?.id);
       return { ok: true };
     } catch (error) {
       return { ok: false, error: error?.message || "Görevler kaydedilemedi." };
@@ -507,6 +514,23 @@ function registerIpcHandlers() {
       return { ok: true, count: cleaned.length };
     } catch (error) {
       return { ok: false, error: error?.message || "Avatarlar kaydedilemedi." };
+    }
+  });
+
+  safeHandle("portfolios:list", async () => {
+    try {
+      return await listData("intern_portfolios");
+    } catch (_e) {
+      return [];
+    }
+  });
+
+  safeHandle("portfolios:save", async (_event, items) => {
+    try {
+      await saveWholesale("intern_portfolios", items, (p) => p?.internId || p?.id);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Portfolyolar kaydedilemedi." };
     }
   });
 }

@@ -1,5 +1,47 @@
-﻿<section>
-  <h1 class="page-title">Stajyerlerim</h1>
-  <p class="page-subtitle">Ekibimdeki stajyerler listesi.</p>
-  <div class="card">Stajyer listesi modülü hazırlanıyor.</div>
+<section class="intern-v2-shell">
+  <div class="intern-v2-toolbar">
+    <div id="internDeptFilters" class="intern-v2-filters">
+      <button type="button" class="intern-v2-filter active" data-dept="ALL">Hepsi</button>
+    </div>
+    <p class="intern-v2-count">
+      Toplam <strong id="internKpiTotal">0</strong> stajyer listeleniyor
+      <span class="intern-v2-count-sep">·</span>
+      Ort. skor <strong id="internKpiAvg" class="intern-v2-accent">—</strong>
+    </p>
+  </div>
+
+  <div id="internCardGrid" class="intern-v2-grid"></div>
+
+  <div id="internDetailPanel" class="intern-v2-detail hidden">
+    <div class="intern-v2-detail-head">
+      <button type="button" id="internDetailClose" class="intern-v2-back">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Listeye dön
+      </button>
+      <div class="intern-v2-detail-filters" id="internDetailFilters">
+        <select id="internWeekFilter" class="input intern-filter-select" title="Tarih aralığı">
+          <option value="">Tüm dönem</option>
+          <option value="4">Son 4 hafta</option>
+          <option value="8">Son 8 hafta</option>
+          <option value="12">Son 12 hafta</option>
+        </select>
+        <select id="internCategoryFilter" class="input intern-filter-select" title="Kategori">
+          <option value="ALL">Tüm kategoriler</option>
+          <option value="Geliştirme">Geliştirme</option>
+          <option value="Raporlama">Raporlama</option>
+          <option value="Analiz">Analiz</option>
+          <option value="Tasarım">Tasarım</option>
+          <option value="Genel">Genel</option>
+        </select>
+      </div>
+      <div class="intern-v2-detail-tabs" id="internDetailTabs">
+        <button type="button" class="intern-v2-tab active" data-tab="executive">Özet</button>
+        <button type="button" class="intern-v2-tab" data-tab="performance">Performans</button>
+        <button type="button" class="intern-v2-tab" data-tab="tasks">Görevler</button>
+        <button type="button" class="intern-v2-tab" data-tab="feedback">Geri Bildirim</button>
+        <button type="button" class="intern-v2-tab" data-tab="finance">Finans</button>
+      </div>
+    </div>
+    <div id="internDetailBody" class="intern-v2-detail-body"></div>
+  </div>
 </section>

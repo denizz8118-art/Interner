@@ -60,7 +60,17 @@ npm start
 ```
 
 Uygulama, PocketBase çalışmıyorsa kendi child process'i olarak otomatik başlatır ve çıkışta kapatır.
-PocketBase admin paneline `http://127.0.0.1:8090/_/` adresinden erişilebilir.
+
+### Veritabanı yönetim paneli
+
+Admin paneli **sadece** şu adreste açılır (sonundaki `/_/` önemli):
+
+```
+http://127.0.0.1:8090/_/
+```
+
+`http://127.0.0.1:8090` (kök adres) API sunucusudur; tarayıcıda açınca `404 File not found` görmen normaldir, hata değildir.
+Giriş bilgileri: `pocketbase/config.json` içindeki `adminEmail` ve `adminPassword`.
 
 ## Scriptler
 
