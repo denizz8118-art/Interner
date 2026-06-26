@@ -1,0 +1,28 @@
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/5492229529809928029/screens/4fec7843e91842a484a9f1d15d4db5db\",\"title\":\"Tüm Stajyerler - Aktivite Detaylı Lider Paneli\",\"screenshot\":{\"name\":\"projects/5492229529809928029/files/3192632062514b62807db2d56f392ed9\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/AP1WRLuOqccbm2mWpd51uypE2jNPknuugKzB1GnIWjth71H6oahG7LlabcqUieTfwAUddaWiTbN_ALG_FxnGdYS2Y07bCrkCUv6dkGk7o_X1-t0AGPh2sSB_B9AixqwAlWnFU9AY2N8-qlkLEoAzgpK5a9l-fCJL8Vd-AHE9dsrxTp-XaY2JBLJtYyS83LuB9mHcNUkuppq23MqmDt5IBiTN6_q42HslNBhiLmWCOeG9LQZbzyRSyN_Gol9U6yc\"},\"htmlCode\":{\"name\":\"projects/5492229529809928029/files/20bdb058057c45ccacf2dbb5f8eaba8e\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E2YzI3ZTEwNzRkMjQ2ZmZiODllYWZiZjUzNDJiYmE2EgsSBxCg1LTE-AYYAZIBIwoKcHJvamVjdF9pZBIVQhM1NDkyMjI5NTI5ODA5OTI4MDI5&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2048\",\"deviceType\":\"DESKTOP\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "deviceType": "DESKTOP",
+      "height": "2048",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E2YzI3ZTEwNzRkMjQ2ZmZiODllYWZiZjUzNDJiYmE2EgsSBxCg1LTE-AYYAZIBIwoKcHJvamVjdF9pZBIVQhM1NDkyMjI5NTI5ODA5OTI4MDI5&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/5492229529809928029/files/20bdb058057c45ccacf2dbb5f8eaba8e"
+      },
+      "name": "projects/5492229529809928029/screens/4fec7843e91842a484a9f1d15d4db5db",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AP1WRLuOqccbm2mWpd51uypE2jNPknuugKzB1GnIWjth71H6oahG7LlabcqUieTfwAUddaWiTbN_ALG_FxnGdYS2Y07bCrkCUv6dkGk7o_X1-t0AGPh2sSB_B9AixqwAlWnFU9AY2N8-qlkLEoAzgpK5a9l-fCJL8Vd-AHE9dsrxTp-XaY2JBLJtYyS83LuB9mHcNUkuppq23MqmDt5IBiTN6_q42HslNBhiLmWCOeG9LQZbzyRSyN_Gol9U6yc",
+        "name": "projects/5492229529809928029/files/3192632062514b62807db2d56f392ed9"
+      },
+      "title": "Tüm Stajyerler - Aktivite Detaylı Lider Paneli",
+      "width": "2560"
+    }
+  }
+}

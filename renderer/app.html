@@ -7,15 +7,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles/material-symbols.css" />
+    <link rel="stylesheet" href="./styles/stitch-tokens.css" />
     <link rel="stylesheet" href="./app.css" />
     <link rel="stylesheet" href="./styles/sidebar.css" />
+    <link rel="stylesheet" href="./styles/stitch-shell.css" />
+    <link rel="stylesheet" href="./styles/pages-shared.css" />
     <link rel="stylesheet" href="./styles/tasks.css" />
+    <link rel="stylesheet" href="./styles/gorev-calisma.css" />
     <link rel="stylesheet" href="./styles/requests.css" />
+    <link rel="stylesheet" href="./styles/panel.css" />
+    <link rel="stylesheet" href="./styles/stajyerlerim.css" />
+    <script src="./fonts-loader.js"></script>
+    <script src="./lib/taskWorkspace.js"></script>
   </head>
   <body>
     <div id="appShell" class="app-shell">
       <aside id="sidebar" class="sidebar app-sidebar">
         <div>
+          <h1 class="sidebar-brand">Staj Yönetimi</h1>
           <div class="user-box">
             <div id="sidebarUserAvatar" class="user-avatar">-</div>
             <div class="user-name" id="sidebarUserName">-</div>
@@ -23,33 +33,57 @@
             <div class="meta user-role" id="sidebarUserDept">-</div>
           </div>
           <nav class="nav">
-            <button class="nav-link" data-view="panel"><span class="nav-icon">◫</span><span class="label">Panel</span></button>
-            <button class="nav-link" data-view="gelen-talepler"><span class="nav-icon">⌂</span><span class="label">Gelen Talepler</span></button>
-            <button class="nav-link active" data-view="gorevlerim"><span class="nav-icon">☑</span><span class="label">Görevlerim</span></button>
-            <button class="nav-link" data-view="departmanlar"><span class="nav-icon">▤</span><span class="label">Departmanlar</span></button>
-            <button class="nav-link" data-view="mesajlar"><span class="nav-icon">◱</span><span class="label">Mesajlar</span></button>
-            <button class="nav-link" data-view="profil"><span class="nav-icon">◌</span><span class="label">Profil</span></button>
-            <button class="nav-link" data-view="kullanicilar" data-requires-role="staff"><span class="nav-icon">◍</span><span class="label">Kullanıcılar</span></button>
-            <button class="nav-link" data-view="stajyerlerim" data-requires-role="staff"><span class="nav-icon">◎</span><span class="label">Stajyerlerim</span></button>
-            <button type="button" class="nav-link nav-link-action" data-action="open-task-create" data-requires-role="staff"><span class="nav-icon">✛</span><span class="label">Görev Oluştur</span></button>
+            <button class="nav-link" data-view="panel"><span class="nav-icon material-symbols-outlined">dashboard</span><span class="label">Panel</span></button>
+            <button class="nav-link" data-view="gelen-talepler"><span class="nav-icon material-symbols-outlined">inbox</span><span class="label">Gelen Talepler</span></button>
+            <button class="nav-link active" data-view="gorevlerim"><span class="nav-icon material-symbols-outlined">assignment</span><span class="label">Görevlerim</span></button>
+            <button class="nav-link" data-view="departmanlar"><span class="nav-icon material-symbols-outlined">domain</span><span class="label">Departmanlar</span></button>
+            <button class="nav-link" data-view="mesajlar"><span class="nav-icon material-symbols-outlined">chat</span><span class="label">Mesajlar</span></button>
+            <button class="nav-link" data-view="profil"><span class="nav-icon material-symbols-outlined">account_circle</span><span class="label">Profil</span></button>
+            <button class="nav-link" data-view="kullanicilar" data-requires-role="staff"><span class="nav-icon material-symbols-outlined">manage_accounts</span><span class="label">Kullanıcılar</span></button>
+            <button class="nav-link" data-view="stajyerlerim" data-requires-role="staff"><span class="nav-icon material-symbols-outlined">groups</span><span class="label">Stajyerlerim</span></button>
           </nav>
         </div>
         <div class="sidebar-footer">
+          <button type="button" id="sidebarNewTaskBtn" class="sidebar-cta nav-link-hidden" data-requires-role="staff">
+            <span class="material-symbols-outlined">add</span>
+            <span>Yeni Görev</span>
+          </button>
           <div class="sidebar-divider"></div>
-          <button class="logout-btn"><span>⚙</span><span>Ayarlar</span></button>
-          <button id="logoutBtn" class="logout-btn"><span>⇥</span><span>Çıkış Yap</span></button>
+          <button type="button" id="sidebarThemeBtn" class="logout-btn">
+            <span class="material-symbols-outlined">contrast</span>
+            <span>Tema Değiştir</span>
+          </button>
+          <button type="button" id="sidebarSettingsBtn" class="logout-btn nav-link-hidden" data-requires-role="staff">
+            <span class="material-symbols-outlined">settings</span>
+            <span>Ayarlar</span>
+          </button>
+          <button id="logoutBtn" class="logout-btn">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Çıkış Yap</span>
+          </button>
         </div>
       </aside>
 
       <section class="main-area">
         <header class="topbar">
           <div class="topbar-left">
-            <button class="icon-btn" id="mobileMenuBtn">☰</button>
-            <strong class="topbar-brand">İnterner</strong>
+            <button class="topbar-icon-btn" id="mobileMenuBtn" type="button" aria-label="Menü">
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 id="topbarPageTitle" class="topbar-page-title">Görevlerim</h2>
           </div>
           <div class="topbar-right">
-            <button class="icon-btn">🔔</button>
-            <div class="topbar-avatar">👤</div>
+            <div id="topbarSearchWrap" class="topbar-search-wrap">
+              <span class="material-symbols-outlined">search</span>
+              <input id="topbarSearch" class="topbar-search" type="search" placeholder="Ara..." />
+            </div>
+            <button type="button" id="topbarThemeBtn" class="topbar-icon-btn" aria-label="Tema">
+              <span class="material-symbols-outlined">dark_mode</span>
+            </button>
+            <button type="button" class="topbar-icon-btn" aria-label="Bildirimler" style="position:relative">
+              <span class="material-symbols-outlined">notifications</span>
+              <span class="topbar-notify-dot"></span>
+            </button>
           </div>
         </header>
         <main id="viewRoot" class="view-root"></main>
@@ -90,6 +124,23 @@
                 <option value="assigned">Atandığında Başlasın</option>
                 <option value="accepted">Kabul Edildiğinde Başlasın</option>
               </select>
+            </div>
+          </div>
+
+          <div class="task-create-grid task-create-grid-2">
+            <div class="task-create-field">
+              <label class="small">Kategori</label>
+              <select id="taskCategory" class="input">
+                <option value="Geliştirme">Geliştirme</option>
+                <option value="Raporlama">Raporlama</option>
+                <option value="Analiz">Analiz</option>
+                <option value="Tasarım">Tasarım</option>
+                <option value="Genel" selected>Genel</option>
+              </select>
+            </div>
+            <div class="task-create-field">
+              <label class="small">Tahmini süre (saat)</label>
+              <input id="taskEstimatedHours" class="input" type="number" min="1" max="500" step="1" placeholder="Örn: 16" />
             </div>
           </div>
 
@@ -541,7 +592,56 @@
       </div>
     </div>
 
+    <div id="taskEvalModal" class="modal-overlay hidden">
+      <div class="modal-card task-eval-modal">
+        <div class="task-eval-head">
+          <h3>Görev Teslimini Değerlendir</h3>
+          <p>InternScore için mentor puanı zorunludur — her skorun arkasında kanıt olmalı.</p>
+        </div>
+        <form id="taskEvalForm" class="task-eval-form">
+          <input type="hidden" id="taskEvalRequestId" value="" />
+          <p id="taskEvalTaskTitle" class="task-eval-task-title">-</p>
+          <p id="taskEvalInternName" class="task-eval-intern">-</p>
+          <div class="task-eval-grid">
+            <div class="task-eval-field">
+              <label class="small">İş kalitesi (1–5)</label>
+              <select id="taskEvalQuality" class="input" required>
+                <option value="">Seçin</option>
+                <option value="1">1 — Yetersiz</option>
+                <option value="2">2 — Geliştirilmeli</option>
+                <option value="3">3 — Beklenen</option>
+                <option value="4">4 — İyi</option>
+                <option value="5">5 — Mükemmel</option>
+              </select>
+            </div>
+            <div class="task-eval-field">
+              <label class="small">Bağımsızlık (1–5)</label>
+              <select id="taskEvalIndependence" class="input" required>
+                <option value="">Seçin</option>
+                <option value="1">1 — Tam destek</option>
+                <option value="2">2 — Sık yönlendirme</option>
+                <option value="3">3 — Orta</option>
+                <option value="4">4 — Az yardım</option>
+                <option value="5">5 — Tam bağımsız</option>
+              </select>
+            </div>
+          </div>
+          <div class="task-eval-field">
+            <label class="small">Kısa değerlendirme notu</label>
+            <textarea id="taskEvalNote" class="input" rows="3" placeholder="Somut kanıt ve gözlem..." required></textarea>
+          </div>
+          <p id="taskEvalError" class="form-error"></p>
+          <div class="task-eval-actions">
+            <button type="button" id="cancelTaskEval" class="btn-ghost">İptal</button>
+            <button type="submit" class="btn-primary">Onayla ve Puanla</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="./lib/internScore.js"></script>
     <script src="./pages/mesajlar.js"></script>
+    <script src="./pages/stajyerlerim.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

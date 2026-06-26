@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İnterner — HR Portfolyö Council Raporu</title>
+  <style>
+    :root { --bg:#f8f9fc; --card:#fff; --border:#e2e6ef; --text:#1a1d26; --muted:#5c6370; --accent:#6c63ff; --green:#10b981; --amber:#f59e0b; --red:#ef4444; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); margin: 0; line-height: 1.55; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; }
+    .lead { color: var(--muted); margin-bottom: 32px; }
+    .verdict { background: linear-gradient(135deg, #6c63ff15, #10b98110); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+    .verdict h2 { margin-top: 0; color: var(--accent); font-size: 1.1rem; text-transform: uppercase; letter-spacing: .04em; }
+    .verdict .rec { font-size: 1.15rem; font-weight: 600; margin: 12px 0; }
+    .first-step { background: var(--accent); color: #fff; padding: 14px 18px; border-radius: 8px; margin-top: 16px; font-weight: 500; }
+    section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 20px; }
+    section h2 { margin: 0 0 14px; font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    h3 { font-size: .95rem; margin: 16px 0 8px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th { background: #f0f2f8; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+    .persona { padding: 14px; background: #f0f2f8; border-radius: 8px; }
+    .persona strong { display: block; margin-bottom: 6px; }
+    .align-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .pill { padding: 6px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+    .pill.agree { background: #d1fae5; color: #065f46; }
+    .pill.clash { background: #fef3c7; color: #92400e; }
+    details { margin: 10px 0; border: 1px solid var(--border); border-radius: 8px; padding: 0 14px; background: #fafbfe; }
+    summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+    details p { margin: 0 0 12px; color: var(--muted); font-size: .9rem; }
+    ul { margin: 8px 0; padding-left: 20px; }
+    li { margin: 4px 0; }
+    .phase { border-left: 3px solid var(--accent); padding-left: 12px; margin: 10px 0; }
+    footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎓 İnterner — HR Stajyer Portfolyö Council</h1>
+    <p class="lead">26 Haziran 2026 · 5 danışman + peer review · Konu: AI destekli HR portfolyö modülü mimarisi</p>
+
+    <div class="verdict">
+      <h2>Council Verdict</h2>
+      <p class="rec">Ürünü "Portföy" değil <strong>Hire / No-Hire Decision Engine</strong> olarak konumla. Portföy = kanıt katmanı; karar = çıktı.</p>
+      <p><strong>Uyum:</strong> Tek Decision Brief ekranı, 3 sunum modu, AI = kanıt özeti + tutarsızlık uyarısı (hikâye jeneratörü değil), mevcut InternScore üzerine inşa.</p>
+      <p><strong>Çatışma çözümü:</strong> Başarı olasılığı → "dönüşüm güveni" etiketi + düşük örneklem uyarısı; tam ML tahmin v2'de.</p>
+      <div class="first-step">▶ İlk adım: <code>portfolioSchema.js</code> + <code>hiringThesis</code> + <code>buildJourneyTimeline()</code></div>
+    </div>
+
+    <div class="align-bar">
+      <span class="pill agree">Uyum: Karar motoru</span>
+      <span class="pill agree">Uyum: 3 görünüm</span>
+      <span class="pill agree">Uyum: Kanıt zinciri</span>
+      <span class="pill clash">Çatışma: AI kapsamı</span>
+      <span class="pill clash">Çatışma: Olasılık etiketi</span>
+    </div>
+
+    <section>
+      <h2>👤 Persona 1 — HR: Selin Arslan (İK Uzmanı)</h2>
+      <div class="persona">
+        <strong>Selin Arslan · Talent Acquisition · 5 yıl</strong>
+        Günde 30–50 başvuru; stajyer görüşmesinde max 15 dk harcamak istiyor. Hikâye değil <em>veri</em> istiyor. "Bu stajyer iyi yatırım mıydı?" sorusunu 3 ay içinde yanıtlamak zorunda.
+      </div>
+      <h3>Selin'in 5 sorusu (ürün bunları yanıtlamalı)</h3>
+      <ol>
+        <li>Bağımsız çalışabiliyor mu? → <code>independence</code> trendi + mentor notları</li>
+        <li>Öğrenme hızı nasıl? → kalite ilk/son yarı karşılaştırması (InternScore learning)</li>
+        <li>Takım uyumu var mı? → iletişim skoru + görev revize oranı</li>
+        <li>Full-time potansiyel? → segment + dönüşüm güveni</li>
+        <li>Mentor yükü ne? → haftalık mentor saati × görev sayısı</li>
+      </ol>
+      <h3>Neden işe alınıyor? (araştırma özeti)</h3>
+      <ul>
+        <li>Stajyerden full-time: daha yüksek retention, düşük işe alım maliyeti</li>
+        <li>Tek sektör verisi: stajyerlerin ~%60–80'si teklif alabiliyor (sektöre göre)</li>
+        <li>Kararların çoğu <strong>ilk 4 haftada</strong> şekilleniyor → erken milestone kritik</li>
+        <li>İşe alım gerekçesi: kanıtlanmış yetkinlik, kültür uyumu, düşük onboarding riski</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>👤 Persona 2 — Muhasebe: Adem Çelik</h2>
+      <div class="persona">
+        <strong>Adem Çelik · Muhasebe Müdürü · 8 yıl</strong>
+        Stajyeri maliyet merkezi görür. "İyi stajyer" değil "ne kazandırdı / ne kaybettirdi" ister.
+      </div>
+      <table>
+        <tr><th></th><th>Artı</th><th>Eksi</th></tr>
+        <tr><td>Maliyet</td><td>Tam çalışanın %30–50 maaşı</td><td>Eğitim + mentor hidden cost</td></tr>
+        <tr><td>ROI</td><td>İlk 2–4 hafta negatif, sonra pozitif eğilim</td><td>Conversion olmazsa sunk cost</td></tr>
+        <tr><td>İşe alım</td><td>Dışarıdan alıma göre düşük cost-per-hire</td><td>Garanti yok</td></tr>
+      </table>
+      <h3>Adem'in ekranı (Finance View)</h3>
+      <ul>
+        <li>Stajyer maliyeti = aylık ücret × süre + onboarding</li>
+        <li>Mentor maliyeti = saat ücreti × haftalık saat × hafta</li>
+        <li>Üretilen değer = tamamlanan görev × değer puanı (veya manuel <code>estimatedValue</code>)</li>
+        <li>ROI %, break-even haftası, dış işe alım karşılaştırması (mevcut <code>internScore.finance</code>)</li>
+        <li><strong>İşe alırsak:</strong> 12 ay projeksiyon + mentor tasarrufu vs yeni eleman</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>📊 HR'ın Bakacağı Parametreler</h2>
+      <table>
+        <tr><th>Metrik</th><th>Kaynak (mevcut)</th><th>Hedef</th></tr>
+        <tr><td>Görev tamamlama oranı</td><td>InternScore completion</td><td>&gt;%85</td></tr>
+        <tr><td>Zamanında teslim</td><td>onTimeRate</td><td>&gt;%80</td></tr>
+        <tr><td>Kalite (mentor)</td><td>mentorEvaluation.quality</td><td>ort ≥3.5</td></tr>
+        <tr><td>Bağımsızlık</td><td>mentorEvaluation.independence</td><td>son 2 hafta ↑</td></tr>
+        <tr><td>Revize / başarısız oranı</td><td>task status</td><td>&lt;%20</td></tr>
+        <tr><td>Öğrenme eğrisi</td><td>learning bileşeni</td><td>artış trendi</td></tr>
+        <tr><td>InternScore</td><td>0–100 + segment</td><td>≥70 → teklif adayı</td></tr>
+        <tr><td>Dönüşüm güveni</td><td>conversionLikelihood (kural)</td><td>şeffaf formül + uyarı</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>📈 Grafikler (MVP → v2)</h2>
+      <table>
+        <tr><th>Grafik</th><th>Amaç</th><th>Durum</th></tr>
+        <tr><td>Radar (7 eksen)</td><td>Yetkinlik haritası</td><td>✅ MVP</td></tr>
+        <tr><td>Bar — tamamlanan/başarısız</td><td>Görev özeti</td><td>✅ MVP</td></tr>
+        <tr><td>Timeline / Gantt</td><td>Adım adım yolculuk</td><td>🔄 Genişlet</td></tr>
+        <tr><td>Funnel</td><td>Atandı→Tamamlandı→Onaylandı</td><td>✅ MVP</td></tr>
+        <tr><td>Line — haftalık skor trendi</td><td>İyileşiyor mu?</td><td>📋 v2</td></tr>
+        <tr><td>Gauge — tek bakış skor</td><td>Executive 30 sn</td><td>📋 v2</td></tr>
+        <tr><td>Heatmap takvim</td><td>Aktivite yoğunluğu</td><td>📋 v3</td></tr>
+        <tr><td>Kohort karşılaştırma</td><td>Dönem / dept benchmark</td><td>📋 v3</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>✅ Görev Sistemi & Yolculuk</h2>
+      <div class="phase"><strong>Faz 1 — Onboarding (Hf 1–2)</strong><br/>Ortam, codebase, ilk küçük görev. Zorluk 1–2, bağımsızlık %20 mentor.</div>
+      <div class="phase"><strong>Faz 2 — Bağımsızlaşma (Hf 3–6)</strong><br/>Orta feature, bug triage. Zorluk 3, bağımsızlık %50.</div>
+      <div class="phase"><strong>Faz 3 — Katılım (Hf 7–12)</strong><br/>Feature ownership, code review. Zorluk 4–5, bağımsızlık %80.</div>
+      <p>Her görev: ID, zorluk (1–5), bağımsızlık beklentisi, due date, mentor eval, kanıt linki. Mevcut <code>category</code> + <code>estimatedHours</code> + <code>mentorEvaluation</code> yeterli başlangıç.</p>
+      <p><strong>Yolculuk görseli:</strong> Dikey timeline — milestone noktaları (kabul, ilk tamamlama, ilk 4.0+ kalite, break-even haftası). <code>journeyPhases[]</code> portfolyo şemasında.</p>
+    </section>
+
+    <section>
+      <h2>🎯 Başarı Yüzdesi & Segmentler</h2>
+      <p>Mevcut InternScore v2 segmentleri korunur:</p>
+      <table>
+        <tr><th>Skor</th><th>Etiket</th><th>HR önerisi</th></tr>
+        <tr><td>≥85</td><td>Yıldız</td><td>Full-time değerlendir</td></tr>
+        <tr><td>≥70</td><td>Başarılı</td><td>Teklif adayı</td></tr>
+        <tr><td>≥55</td><td>Gelişiyor</td><td>4 hafta daha izle</td></tr>
+        <tr><td>≥40</td><td>Kritik</td><td>Müdahale planı</td></tr>
+        <tr><td>&lt;40</td><td>Uyumsuz</td><td>Çıkış görüşmesi</td></tr>
+      </table>
+      <p><strong>Dönüşüm güveni:</strong> Skor + tamamlama + trend birleşimi; &lt;5 tamamlanan görevde "yetersiz veri" uyarısı göster.</p>
+    </section>
+
+    <section>
+      <h2>🖥️ 3 Sunum Modu</h2>
+      <div class="grid2">
+        <div>
+          <h3>1. Executive (30 sn)</h3>
+          <ul><li>InternScore gauge</li><li>Öneri: Al / Bekle / Ayır</li><li>3 kanıt maddesi</li><li>1 risk</li><li>AI 2 cümle özet</li></ul>
+        </div>
+        <div>
+          <h3>2. Detail (15 dk)</h3>
+          <ul><li>Tüm sekmeler</li><li>Görev timeline</li><li>Mentor notları</li><li>Skor bileşen tablosu</li></ul>
+        </div>
+        <div>
+          <h3>3. Finance (Adem)</h3>
+          <ul><li>ROI, break-even</li><li>İşe al vs dışarıdan</li><li>12 ay projeksiyon</li></ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>🤖 AI Katmanı (HR için)</h2>
+      <ul>
+        <li>Haftalık kanıt özeti (doğal dil, kaynak linkli)</li>
+        <li>Tutarsızlık: yüksek skor + düşük kalite notu</li>
+        <li>Red flag: 2 hafta skor düşüşü &gt;%15</li>
+        <li>Öneri motoru: "X görevi ver, Y alanı geliştir" (v2)</li>
+        <li><strong>Yapma (MVP):</strong> serbest hikâye, bias'sız "işe al" without evidence</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>🧩 Ek İhtiyaçlar (council + araştırma)</h2>
+      <ul>
+        <li>KVKK: stajyer portfolyoyu görmez; HR-only erişim</li>
+        <li>Audit trail: kim hangi kararı verdi (<code>decisionLog</code>)</li>
+        <li>Minimum görev eşiği skor için</li>
+        <li>Mentor bias kalibrasyonu (ortalama skor departman bazlı)</li>
+        <li>Evidence-based scoring: her puana görev ID bağlantısı</li>
+        <li>Exit interview şablonu (ayrılışta)</li>
+        <li>Kohort analizi (aynı dönem stajyerleri)</li>
+        <li>Karar sonrası akış: red → stajyer ne görür?</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>🛠️ İnşa Adımları (6 hafta)</h2>
+      <table>
+        <tr><th>Hafta</th><th>Çıktı</th></tr>
+        <tr><td>1</td><td><code>portfolioSchema.js</code>, hiringThesis, journeyTimeline, Decision Brief UI</td></tr>
+        <tr><td>2</td><td>Görev fazları, milestone'lar, İK/Muhasebe toggle</td></tr>
+        <tr><td>3</td><td>Export/print, decisionLog şablonları, şeffaf skor tooltip</td></tr>
+        <tr><td>4–5</td><td><code>portfolioAI.js</code> + IPC, kanıt özeti, uyarılar</td></tr>
+        <tr><td>6</td><td>Executive one-pager, edge case, test</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Danışman Yanıtları (özet)</h2>
+      <details><summary>The Contrarian</summary><p>Sunum modları ve success probability erken ürünleştirme riski. Önce kanıt tablosu + tut/geliştir/ayır. AI = tutarsızlık dedektörü.</p></details>
+      <details><summary>The First Principles Thinker</summary><p>Karar motoru; 5 nesne + 3 ekran. Portföy kanıt katmanı.</p></details>
+      <details><summary>The Expansionist</summary><p>Yetenek kanıtı platformu; kohort, CFO dili, talent pool.</p></details>
+      <details><summary>The Outsider</summary><p>Etiket şeffaflığı, 30 sn vs 15 dk, red akışı.</p></details>
+      <details><summary>The Executor</summary><p>Haftalık plan; portfolioSchema ilk adım.</p></details>
+    </section>
+
+    <footer>İnterner LLM Council · 26 Haziran 2026 · Metodoloji: Karpathy LLM Council · Cursor uyarlaması</footer>
+  </div>
+</body>
+</html>

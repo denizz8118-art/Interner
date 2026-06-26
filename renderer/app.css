@@ -1,21 +1,21 @@
 :root {
-  --bg: #13121b;
-  --bg-soft: #1c1a24;
-  --card: #201e28;
-  --card-2: #2a2933;
-  --border: #464555;
-  --text: #e5e0ee;
-  --muted: #918fa1;
-  --primary: #6c63ff;
+  --bg: var(--surface, #13121b);
+  --bg-soft: var(--surface-container-low, #1c1a24);
+  --card: var(--surface-container, #201e28);
+  --card-2: var(--surface-container-high, #2a2933);
+  --border: var(--outline-variant, #464555);
+  --text: var(--on-surface, #e5e0ee);
+  --muted: var(--outline, #918fa1);
+  --primary: var(--stitch-accent, #6c63ff);
   --primary-soft: rgba(108, 99, 255, 0.15);
   --success: #36b37e;
   --warning: #ffb020;
   --danger: #ff5d73;
-  --radius-card: 14px;
+  --radius-card: 12px;
   --radius-pill: 999px;
-  --shell-bg: #0b0d1a;
-  --sidebar-bg: #070916;
-  --topbar-bg: #131426;
+  --shell-bg: var(--surface-dim, #13121b);
+  --sidebar-bg: #1a1d27;
+  --topbar-bg: #1a1d27;
 }
 
 html[data-theme="light"] {
@@ -479,7 +479,8 @@ label.small {
 .user-role { color: #bcc3de; font-size: 12px; }
 
 .nav { display: flex; flex-direction: column; gap: 6px; }
-.nav-link.nav-link-hidden {
+.nav-link.nav-link-hidden,
+.nav-link-hidden {
   display: none !important;
 }
 .nav-link {

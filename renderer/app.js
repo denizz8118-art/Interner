@@ -1,4 +1,4 @@
-﻿const viewRoot = document.getElementById("viewRoot");
+const viewRoot = document.getElementById("viewRoot");
 const navLinks = [...document.querySelectorAll(".nav-link")];
 const sidebar = document.getElementById("sidebar");
 const appShell = document.getElementById("appShell");
@@ -34,7 +34,7 @@ let requests = [];
 let tasks = [];
 let messages = [];
 let users = [];
-/** Profil görselleri users.json dışında (data/user_photos.json). */
+/** Profil görselleri PocketBase user_photos koleksiyonunda (users.data dışında). */
 let userPhotos = [];
 let departmentNames = [];
 /** Geçerli shell görünümü (gerçek zamanlı mesaj yenilemesi için). */
@@ -68,12 +68,26 @@ let activeTaskFlowTask = null;
 let taskCompleteFiles = [];
 let postponeDatePickerBound = false;
 let postponeDatePickerState = { year: 0, month: 0 };
+let portfolios = [];
+let pendingEvalRequest = null;
 
-const ROLE_ORDER = ["STAJYER", "DEV", "LEADER", "ADMIN", "MANAGER"];
+const ROLE_ORDER = ["DEV", "MANAGER", "ADMIN", "LEADER", "STAJYER"];
 const ROLE_LABEL_MAP = { MANAGER: "Müdür", LEADER: "Lider", ADMIN: "Personel", STAJYER: "Stajyer", DEV: ".dev" };
-const ROLE_TITLE_MAP = { MANAGER: "Müdür", LEADER: "Takım Lideri", ADMIN: "Personel", STAJYER: "Stajyer", DEV: "Developer" };
-const STAJYER_HIDDEN_VIEWS = new Set(["kullanicilar", "stajyerlerim", "erisim-ayarlari"]);
+const ROLE_TITLE_MAP = { MANAGER: "Müdür", LEADER: "Takım Lideri", ADMIN: "Personel", STAJYER: "Stajyer", DEV: ".dev" };
+const STAJYER_HIDDEN_VIEWS = new Set(["kullanicilar", "stajyerlerim", "erisim-ayarlari", "gorev-olustur"]);
 const ACCENT_PRESETS = ["#6c63ff", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+
+const VIEW_META = {
+  panel: { title: "Panel", search: false },
+  "gelen-talepler": { title: "Gelen Talepler", search: false },
+  gorevlerim: { title: "Görevlerim", search: false },
+  departmanlar: { title: "Departmanlar", search: true, searchPlaceholder: "Departman ara..." },
+  mesajlar: { title: "Mesajlar", search: true, searchPlaceholder: "Konuşma ara..." },
+  profil: { title: "Profil", search: false },
+  kullanicilar: { title: "Kullanıcılar", search: true, searchPlaceholder: "Kullanıcı ara..." },
+  stajyerlerim: { title: "Stajyerlerim", search: true, searchPlaceholder: "Stajyer ara..." },
+  "erisim-ayarlari": { title: "Erişim Ayarları", search: false }
+};
 
 function getUserFullName(user) {
   const single = String(user?.ad_soyad || "").trim();
@@ -120,15 +134,200 @@ function isStajyerRole(user = currentUser) {
   return String(user?.rol || "").toUpperCase() === "STAJYER";
 }
 
+function isDevRole(user = currentUser) {
+  return String(user?.rol || "").toUpperCase() === "DEV";
+}
+
+/** .dev rolü uygulamadaki tüm özelliklere erişir (en geniş yetki). */
+function hasFullAccess(user = currentUser) {
+  return isDevRole(user);
+}
+
 function canAccessStaffFeatures(user = currentUser) {
+  if (hasFullAccess(user)) return true;
   return !isStajyerRole(user);
+}
+
+function isViewBlockedForUser(viewKey, user = currentUser) {
+  if (hasFullAccess(user)) return false;
+  if (!isStajyerRole(user)) return false;
+  return STAJYER_HIDDEN_VIEWS.has(viewKey);
 }
 
 function applyRoleBasedNav() {
   const staff = canAccessStaffFeatures();
-  document.querySelectorAll(".nav-link[data-requires-role='staff'], .nav-link[data-view='kullanicilar'], .nav-link[data-view='stajyerlerim'], .nav-link[data-action='open-task-create']").forEach((btn) => {
+  document.querySelectorAll(
+    ".nav-link[data-requires-role='staff'], .nav-link[data-view='kullanicilar'], .nav-link[data-view='stajyerlerim'], [data-requires-role='staff']"
+  ).forEach((btn) => {
     btn.classList.toggle("nav-link-hidden", !staff);
   });
+}
+
+function updateShellForView(viewKey) {
+  const meta = VIEW_META[viewKey] || { title: viewKey, search: false };
+  const titleEl = document.getElementById("topbarPageTitle");
+  if (titleEl) titleEl.textContent = meta.title;
+
+  const searchWrap = document.getElementById("topbarSearchWrap");
+  const searchInput = document.getElementById("topbarSearch");
+  if (searchWrap) {
+    searchWrap.classList.toggle("is-visible", Boolean(meta.search));
+    searchWrap.style.display = meta.search ? "" : "none";
+  }
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.placeholder = meta.searchPlaceholder || "Ara...";
+    searchInput.oninput = null;
+    if (viewKey === "stajyerlerim") {
+      searchInput.oninput = (e) => {
+        const q = String(e.target.value || "").trim().toLowerCase();
+        document.querySelectorAll("#internCardGrid .intern-v2-card").forEach((card) => {
+          const name = card.querySelector(".intern-v2-name")?.textContent?.toLowerCase() || "";
+          card.style.display = !q || name.includes(q) ? "" : "none";
+        });
+      };
+    } else if (viewKey === "kullanicilar") {
+      searchInput.oninput = (e) => {
+        const q = String(e.target.value || "").trim().toLowerCase();
+        document.querySelectorAll("#usersTableBody tr").forEach((row) => {
+          const text = row.textContent?.toLowerCase() || "";
+          row.style.display = !q || text.includes(q) ? "" : "none";
+        });
+      };
+    } else if (viewKey === "departmanlar") {
+      searchInput.oninput = (e) => {
+        const q = String(e.target.value || "").trim().toLowerCase();
+        document.querySelectorAll(".departments-v2-row").forEach((row) => {
+          const text = row.textContent?.toLowerCase() || "";
+          row.style.display = !q || text.includes(q) ? "" : "none";
+        });
+      };
+    } else if (viewKey === "mesajlar") {
+      searchInput.oninput = (e) => {
+        const convSearch = document.getElementById("conversationSearch");
+        if (convSearch) {
+          convSearch.value = e.target.value;
+          convSearch.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      };
+    }
+  }
+
+  if (viewRoot) viewRoot.classList.add("has-stitch-topbar");
+}
+
+function renderPanel() {
+  const viewTasks = getTasksForCurrentUser();
+  const activeTasks = viewTasks.filter((t) => String(t.status || "").toLowerCase().includes("devam"));
+  const pendingRequests = getIncomingRequestsForUser().filter((r) => String(r.status || "").toLowerCase().includes("bekle"));
+  const internCount = users.filter((u) => String(u.rol || "").toUpperCase() === "STAJYER").length;
+  const doneTasks = viewTasks.filter((t) => String(t.status || "").toLowerCase().includes("tamamlanan"));
+
+  const setText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(val);
+  };
+  setText("panelKpiTasks", activeTasks.length);
+  setText("panelKpiRequests", pendingRequests.length);
+  if (isStajyerRole(currentUser) && window.TaskWorkspace) {
+    const stats = window.TaskWorkspace.calcInternSuccessStats(tasks, currentUser.id);
+    setText("panelKpiInterns", stats.rate);
+    setText("panelKpiDone", stats.completed);
+    setText("panelKpiTasksSub", `%${stats.rate} tamamlama oranı`);
+    setText("panelKpiRequestsSub", `${stats.onTimeRate}% zamanında teslim`);
+    const internLabel = document.querySelector("#panelKpiGrid .stitch-kpi:nth-child(3) .stitch-kpi-label");
+    const doneLabel = document.querySelector("#panelKpiGrid .stitch-kpi:nth-child(4) .stitch-kpi-label");
+    if (internLabel) internLabel.textContent = "Başarı Oranı";
+    if (doneLabel) doneLabel.textContent = "Tamamlanan";
+  } else {
+    setText("panelKpiInterns", internCount);
+    setText("panelKpiDone", doneTasks.length);
+    setText("panelKpiTasksSub", `${viewTasks.length} toplam görev`);
+    setText("panelKpiRequestsSub", `${requests.length} toplam talep`);
+  }
+
+  const activityList = document.getElementById("panelActivityList");
+  if (activityList) {
+    const items = [];
+    viewTasks.slice(0, 4).forEach((t) => {
+      items.push({
+        icon: "assignment",
+        title: t.title || "Görev",
+        sub: `${t.status || "—"} · ${t.sender || "Sistem"}`,
+        time: t.dueDate || t.createdAt || ""
+      });
+    });
+    requests.slice(0, 3).forEach((r) => {
+      items.push({
+        icon: "inbox",
+        title: r.title || r.subject || "Talep",
+        sub: String(r.status || "Bekliyor"),
+        time: r.createdAt || ""
+      });
+    });
+    if (!items.length) {
+      activityList.innerHTML = `<p class="stitch-page-lead">Henüz aktivite yok.</p>`;
+    } else {
+      activityList.innerHTML = items
+        .slice(0, 6)
+        .map(
+          (it) =>
+            `<article class="stitch-activity-item">
+              <div class="stitch-activity-icon"><span class="material-symbols-outlined">${it.icon}</span></div>
+              <div class="stitch-activity-body">
+                <strong>${escapeHtml(it.title)}</strong>
+                <span>${escapeHtml(it.sub)}</span>
+              </div>
+              <time class="stitch-activity-time">${escapeHtml(formatDisplayDate(it.time))}</time>
+            </article>`
+        )
+        .join("");
+    }
+  }
+
+  const breakdown = document.getElementById("panelTaskBreakdown");
+  if (breakdown) {
+    const counts = {
+      devam: viewTasks.filter((t) => String(t.status || "").toLowerCase().includes("devam")).length,
+      tamamlanan: doneTasks.length,
+      basarisiz: viewTasks.filter((t) => String(t.status || "").toLowerCase().includes("başarısız")).length,
+      iptal: viewTasks.filter((t) => String(t.status || "").toLowerCase().includes("iptal")).length
+    };
+    breakdown.innerHTML = `
+      <div class="stitch-kpi-grid" style="width:100%;padding:8px">
+        <div class="stitch-kpi"><span class="stitch-kpi-label">Devam</span><span class="stitch-kpi-value">${counts.devam}</span></div>
+        <div class="stitch-kpi"><span class="stitch-kpi-label">Tamamlanan</span><span class="stitch-kpi-value">${counts.tamamlanan}</span></div>
+        <div class="stitch-kpi"><span class="stitch-kpi-label">Başarısız</span><span class="stitch-kpi-value">${counts.basarisiz}</span></div>
+        <div class="stitch-kpi"><span class="stitch-kpi-label">İptal</span><span class="stitch-kpi-value">${counts.iptal}</span></div>
+      </div>`;
+  }
+
+  document.querySelectorAll(".nav-staff-only").forEach((btn) => {
+    btn.classList.toggle("hidden", !canAccessStaffFeatures());
+  });
+
+  document.querySelectorAll("#panelQuickActions [data-goto]").forEach((btn) => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.goto;
+      const navBtn = navLinks.find((n) => n.dataset.view === key);
+      if (navBtn) {
+        navLinks.forEach((item) => item.classList.remove("active"));
+        navBtn.classList.add("active");
+        localStorage.setItem(LAST_ACTIVE_VIEW_KEY, key);
+        await loadView(key);
+      }
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function updateSidebarUserMeta() {
@@ -188,7 +387,21 @@ function normalizeTaskStatusLabel(status) {
   if (normalized === "ara verilen") return "Ara Verilen";
   if (normalized === "iptal edilen") return "İptal Edilen";
   if (normalized === "tamamlanan") return "Tamamlanan";
+  if (normalized === "devam ediyor") return "Devam Eden";
   return "Devam Eden";
+}
+
+function getTasksForCurrentUser() {
+  if (!isStajyerRole(currentUser) && !isDevRole(currentUser)) return tasks;
+  const TW = window.TaskWorkspace;
+  if (!TW?.taskBelongsToUser) return tasks;
+  return tasks.filter((t) => TW.taskBelongsToUser(t, currentUser.id));
+}
+
+function navigateToTaskWorkspace(task) {
+  if (!task?.taskId) return;
+  closeTaskDetailModalFn();
+  window.location.href = `./gorev-calisma.html?taskId=${encodeURIComponent(task.taskId)}`;
 }
 
 function sortRequestsQueuedFirst(list) {
@@ -208,11 +421,13 @@ function applyThemeFromStorage() {
   const accent = localStorage.getItem("appAccent") || ACCENT_PRESETS[0];
   document.documentElement.style.setProperty("--primary", accent);
   document.documentElement.style.setProperty("--accent", accent);
+  document.documentElement.style.setProperty("--stitch-accent", accent);
   const r = parseInt(accent.slice(1, 3), 16);
   const g = parseInt(accent.slice(3, 5), 16);
   const b = parseInt(accent.slice(5, 7), 16);
   if (!Number.isNaN(r)) {
     document.documentElement.style.setProperty("--primary-soft", `rgba(${r}, ${g}, ${b}, 0.18)`);
+    document.documentElement.style.setProperty("--stitch-accent-rgb", `${r}, ${g}, ${b}`);
   }
   document.querySelectorAll(".profile-v2-color").forEach((el, i) => {
     const hex = el.dataset.accent || ACCENT_PRESETS[i] || ACCENT_PRESETS[0];
@@ -220,6 +435,10 @@ function applyThemeFromStorage() {
   });
   const toggle = document.querySelector(".profile-v2-toggle");
   if (toggle) toggle.classList.toggle("is-on", theme !== "light");
+  const themeIcon = theme === "light" ? "light_mode" : "dark_mode";
+  document.querySelectorAll("#topbarThemeBtn .material-symbols-outlined, #sidebarThemeBtn .material-symbols-outlined").forEach((el) => {
+    el.textContent = themeIcon;
+  });
 }
 
 function bindProfileCustomization() {
@@ -480,19 +699,21 @@ async function persistCurrentUserAvatarToStore() {
 }
 
 async function loadData() {
-  const [u, r, t, m, p, d] = await Promise.all([
+  const [u, r, t, m, p, d, pf] = await Promise.all([
     window.api.listUsers(),
     window.api.listRequests(),
     window.api.listTasks(),
     window.api.listMessages(),
     window.api.listUserPhotos(),
-    window.api.listDepartments()
+    window.api.listDepartments(),
+    typeof window.api.listPortfolios === "function" ? window.api.listPortfolios() : Promise.resolve([])
   ]);
   users = u;
   requests = r;
   tasks = t;
   replaceMessagesInPlace(m);
   replaceUserPhotosInPlace(p);
+  portfolios = Array.isArray(pf) ? pf : [];
   departmentNames = Array.isArray(d) ? d.map((x) => String(x).trim()).filter(Boolean) : [];
   populateDepartmentSelects();
   hydrateCurrentUserFromStores();
@@ -538,10 +759,11 @@ function ensureSession() {
 }
 
 async function loadView(viewKey) {
-  if (isStajyerRole() && (STAJYER_HIDDEN_VIEWS.has(viewKey) || viewKey === "gorev-olustur")) {
+  if (isViewBlockedForUser(viewKey)) {
     viewKey = "gorevlerim";
   }
   activeViewKey = viewKey;
+  updateShellForView(viewKey);
   window.__messagesPageRefresh = null;
   window.__openChatWithUserId = null;
   const html = await fetch(`./pages/${viewKey}.html`).then((r) => r.text());
@@ -549,12 +771,33 @@ async function loadView(viewKey) {
   viewRoot.classList.toggle("messages-view", viewKey === "mesajlar");
   viewRoot.classList.toggle("tasks-view", viewKey === "gorevlerim");
   viewRoot.classList.toggle("users-view", viewKey === "kullanicilar");
+  viewRoot.classList.toggle("intern-panel-view", viewKey === "stajyerlerim");
 
+  if (viewKey === "panel") renderPanel();
   if (viewKey === "gelen-talepler") renderRequests();
   if (viewKey === "gorevlerim") renderTasks();
   if (viewKey === "departmanlar") renderDepartments();
   if (viewKey === "kullanicilar") renderUsers();
   if (viewKey === "profil") renderProfile();
+  if (viewKey === "stajyerlerim" && typeof window.initStajyerlerimPage === "function") {
+    window.initStajyerlerimPage({
+      users,
+      tasks,
+      portfolios,
+      currentUser,
+      getUserFullName,
+      getUserPhotoById,
+      hasFullAccess,
+      savePortfolios: async (next) => {
+        const result = await window.api.savePortfolios(next);
+        if (!result?.ok) throw new Error(result?.error || "Portfolyolar kaydedilemedi.");
+        portfolios = next;
+      },
+      setPortfolios: (next) => {
+        portfolios = next;
+      }
+    });
+  }
   if (viewKey === "mesajlar" && typeof window.initMessagesPage === "function") {
     syncChatBridgeContext();
     window.initMessagesPage({
@@ -575,11 +818,32 @@ async function loadView(viewKey) {
   }
 }
 
+function isAssignmentRequest(req) {
+  const kind = String(req?.requestKind || "").toLowerCase();
+  if (kind === "assignment") return true;
+  if (!req?.requestKind && req?.assignees && !req?.relatedTaskId) return true;
+  return false;
+}
+
+function requestVisibleToAssignee(req, uid) {
+  const assigneeId = String(req.assigneeId || "").trim();
+  if (assigneeId) return assigneeId === uid;
+  const me = getUserFullName(currentUser).toLowerCase();
+  const names = String(req.assignees || "")
+    .split(/[,;]/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return names.includes(me);
+}
+
 function getIncomingRequestsForUser() {
   const uid = String(currentUser?.id ?? "");
-  if (!canAccessStaffFeatures()) return [];
+
   return requests.filter((r) => {
-    const assignerId = String(r.assignerId || "");
+    if (isAssignmentRequest(r)) {
+      return requestVisibleToAssignee(r, uid);
+    }
+    const assignerId = String(r.assignerId || "").trim();
     if (assignerId) return assignerId === uid;
     return String(r.senderId || "") !== uid;
   });
@@ -731,15 +995,30 @@ async function renderRequests() {
         return;
       }
       if (req.requestKind === "completion") {
-        const task = findTaskByRelatedId(req.relatedTaskId);
-        if (task) task.status = "Tamamlanan";
-        requests = requests.filter((r) => r.id !== req.id);
-        await Promise.all([window.api.saveRequests(requests), window.api.saveTasks(tasks)]);
-        renderRequests();
+        openTaskEvalModal(req);
         return;
       }
       const acceptedAt = req.startMode === "assigned" ? req.createdAt || new Date().toISOString() : new Date().toISOString();
-      tasks.unshift({ ...req, taskId: `task-${req.id}`, status: "Devam Eden", acceptedAt, postponementStatus: "", postponementReason: "" });
+      tasks.unshift({
+        title: req.title,
+        description: req.description,
+        sender: req.assignerName || req.sender,
+        senderId: req.assignerId || req.senderId,
+        department: req.department,
+        priority: req.priority,
+        dueDate: req.dueDate || "",
+        startMode: req.startMode,
+        attachment: req.attachment || "",
+        category: req.category || "Genel",
+        estimatedHours: req.estimatedHours || null,
+        assignees: String(req.assigneeId || req.assignees || ""),
+        taskId: `task-${req.id}`,
+        status: "Devam Eden",
+        acceptedAt,
+        postponementStatus: "",
+        postponementReason: "",
+        createdAt: req.createdAt || new Date().toISOString()
+      });
       requests = requests.filter((r) => r.id !== req.id);
       await Promise.all([window.api.saveRequests(requests), window.api.saveTasks(tasks)]);
       renderRequests();
@@ -757,6 +1036,91 @@ async function renderRequests() {
       openRequestCloseModal(req);
     }
   };
+}
+
+function openTaskEvalModal(request) {
+  const modal = document.getElementById("taskEvalModal");
+  const titleEl = document.getElementById("taskEvalTaskTitle");
+  const internEl = document.getElementById("taskEvalInternName");
+  const idInput = document.getElementById("taskEvalRequestId");
+  const err = document.getElementById("taskEvalError");
+  if (!modal || !request) return;
+  pendingEvalRequest = request;
+  const task = findTaskByRelatedId(request.relatedTaskId);
+  if (titleEl) titleEl.textContent = task?.title || request.title || "Görev";
+  if (internEl) {
+    internEl.textContent = `Stajyer: ${request.sender || getUserFullName(findUserBySender(request.senderId, request.sender))}`;
+  }
+  if (err) err.textContent = "";
+  const form = document.getElementById("taskEvalForm");
+  if (form) form.reset();
+  if (idInput) idInput.value = String(request.id || "");
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeTaskEvalModalFn() {
+  const modal = document.getElementById("taskEvalModal");
+  if (modal) modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  pendingEvalRequest = null;
+  const err = document.getElementById("taskEvalError");
+  if (err) err.textContent = "";
+}
+
+function computeActualDurationDays(task, completedAtIso) {
+  const startRaw = task?.acceptedAt || task?.createdAt;
+  const endRaw = completedAtIso || task?.completedAt;
+  if (!startRaw || !endRaw) return null;
+  try {
+    const days = Math.ceil((new Date(endRaw).getTime() - new Date(startRaw).getTime()) / 86400000);
+    return Math.max(1, days);
+  } catch {
+    return null;
+  }
+}
+
+async function handleTaskEvalSubmit(event) {
+  event.preventDefault();
+  const err = document.getElementById("taskEvalError");
+  if (err) err.textContent = "";
+  const req = pendingEvalRequest;
+  if (!req) return;
+  const quality = Number(document.getElementById("taskEvalQuality")?.value);
+  const independence = Number(document.getElementById("taskEvalIndependence")?.value);
+  const note = document.getElementById("taskEvalNote")?.value.trim() || "";
+  if (!quality || !independence || !note) {
+    if (err) err.textContent = "Kalite, bağımsızlık ve not zorunludur.";
+    return;
+  }
+  const task = findTaskByRelatedId(req.relatedTaskId);
+  if (!task) {
+    if (err) err.textContent = "İlgili görev bulunamadı.";
+    return;
+  }
+  const now = new Date().toISOString();
+  task.status = "Tamamlanan";
+  task.completedAt = now;
+  task.submittedAt = task.submittedAt || req.createdAt || now;
+  task.actualDurationDays = computeActualDurationDays(task, now);
+  task.mentorEvaluation = {
+    quality,
+    independence,
+    note,
+    evaluatedAt: now,
+    evaluatedBy: currentUser?.id,
+    evaluatedByName: getUserFullName(currentUser),
+    evidenceLink: req.solutionLink || "",
+    evidenceNote: req.internNote || ""
+  };
+  requests = requests.filter((r) => r.id !== req.id);
+  await Promise.all([window.api.saveRequests(requests), window.api.saveTasks(tasks)]);
+  closeTaskEvalModalFn();
+  renderRequests();
+  if (activeViewKey === "gorevlerim") renderTasks();
+  if (activeViewKey === "stajyerlerim" && typeof window.__stajyerlerimRefresh === "function") {
+    window.__stajyerlerimRefresh();
+  }
 }
 
 function openRequestQueueModal(request) {
@@ -914,6 +1278,29 @@ function syncPostponeReasonUI() {
   }
 }
 
+function renderTaskSuccessPanel() {
+  const panel = document.getElementById("taskSuccessPanel");
+  if (!panel || !window.TaskWorkspace || !currentUser?.id) return;
+  const stats = window.TaskWorkspace.calcInternSuccessStats(tasks, currentUser.id);
+  if (!stats.total && !isStajyerRole(currentUser)) {
+    panel.classList.add("hidden");
+    return;
+  }
+  panel.classList.remove("hidden");
+  panel.innerHTML = `
+    <div class="tasks-success-card"><strong>${stats.total}</strong><span>Toplam görev</span></div>
+    <div class="tasks-success-card"><strong>${stats.completed}</strong><span>Tamamlanan</span></div>
+    <div class="tasks-success-card"><strong>${stats.active}</strong><span>Devam eden</span></div>
+    <div class="tasks-success-card"><strong>%${stats.rate}</strong><span>Başarı oranı</span></div>
+    <div class="tasks-success-bar-wrap">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+        <span>Genel ilerleme</span>
+        <span>%${stats.rate} tamamlama · %${stats.onTimeRate} zamanında</span>
+      </div>
+      <div class="tasks-success-bar"><div class="tasks-success-bar-fill" style="width:${stats.rate}%"></div></div>
+    </div>`;
+}
+
 function buildTaskCard(task) {
   const postponePending = task.postponementStatus === "Bekliyor";
   const left = daysLeft(task.dueDate);
@@ -945,6 +1332,11 @@ function buildTaskCard(task) {
       : deadlineClass === "warning"
         ? "due-warning"
         : `priority-${priorityClass}`;
+  const TW = window.TaskWorkspace;
+  const canWork = TW?.isActiveTask ? TW.isActiveTask(task) : String(task.status || "").toLowerCase().includes("devam");
+  const workBtn = canWork
+    ? `<button class="btn-ghost tasks-v2-detail-btn tasks-v2-work-btn" data-action="open-work" data-id="${task.taskId}">Çalışma Alanına Git</button>`
+    : "";
   return `
   <article class="task-card tasks-v2-card ${cardToneClass} ${postponePending ? "postpone-pending" : ""}" data-task-id="${task.taskId}">
     <div class="tasks-v2-card-top">
@@ -961,7 +1353,10 @@ function buildTaskCard(task) {
     </div>
     <div class="tasks-v2-bottom-row">
       <span class="tasks-v2-workday">İş Günü: <strong>${business} Gün</strong></span>
-      <button class="btn-ghost tasks-v2-detail-btn" data-action="open-detail" data-id="${task.taskId}">Görev Detayını İncele</button>
+      <div class="tasks-v2-card-actions">
+        ${workBtn}
+        <button class="btn-ghost tasks-v2-detail-btn" data-action="open-detail" data-id="${task.taskId}">Detay</button>
+      </div>
     </div>
   </article>`;
 }
@@ -971,7 +1366,9 @@ async function renderTasks() {
   const count = document.getElementById("taskCount");
   const tabs = document.getElementById("taskTabs");
   if (!list || !count || !tabs) return;
-  const filtered = tasks.filter((t) => normalizeTaskStatusLabel(t.status) === activeTaskFilter);
+  const viewTasks = getTasksForCurrentUser();
+  const filtered = viewTasks.filter((t) => normalizeTaskStatusLabel(t.status) === activeTaskFilter);
+  renderTaskSuccessPanel();
   count.textContent = String(filtered.length);
   list.innerHTML = filtered.map(buildTaskCard).join("") || '<div class="card">Bu filtrede gorev yok.</div>';
 
@@ -992,6 +1389,10 @@ async function renderTasks() {
       const action = actionBtn.dataset.action;
       if (action === "open-detail") {
         openTaskDetailModal(task);
+        return;
+      }
+      if (action === "open-work") {
+        navigateToTaskWorkspace(task);
         return;
       }
       if (action === "pause") task.status = "Ara Verilen";
@@ -1138,7 +1539,7 @@ async function handleTaskCompleteSubmit(event) {
     status: "Yanit Bekliyor",
     createdAt: new Date().toISOString()
   });
-  task.status = "Tamamlanan";
+  task.submittedAt = new Date().toISOString();
   await window.api.saveTasks(tasks);
   closeTaskCompleteModalFn();
   if (activeViewKey === "gorevlerim") renderTasks();
@@ -1398,8 +1799,16 @@ function openTaskDetailModal(task) {
     postponeBtn.onclick = () => openTaskPostponeModal(task);
   }
   if (submitBtn) {
-    submitBtn.innerHTML = 'Göreve Başla <span>▷</span>';
-    submitBtn.onclick = () => openTaskCompleteModal(task);
+    const TW = window.TaskWorkspace;
+    const s = TW?.normalizeStatus(task.status) || "";
+    const inProgress = s === "devam ediyor" || task.workStartedAt;
+    const paused = s === "ara verilen";
+    submitBtn.innerHTML = paused
+      ? 'Çalışmaya Devam Et <span>▷</span>'
+      : inProgress
+        ? 'Çalışmaya Devam Et <span>▷</span>'
+        : 'Göreve Başla <span>▷</span>';
+    submitBtn.onclick = () => navigateToTaskWorkspace(task);
   }
   const mailBtn = taskDetailModal.querySelector(".task-detail-mail-btn");
   if (mailBtn) {
@@ -1422,7 +1831,7 @@ function renderDepartments() {
   const stats = document.getElementById("departmentStats");
   const searchInput = document.querySelector(".departments-v2-search");
   const addBtn = document.querySelector(".departments-v2-add-btn");
-  if (addBtn) addBtn.classList.toggle("hidden", isStajyerRole());
+  if (addBtn) addBtn.classList.toggle("hidden", !canAccessStaffFeatures());
   if (!rows || !stats) return;
 
   const q = String(searchInput?.value || "").trim().toLowerCase();
@@ -1898,10 +2307,10 @@ function renderProfile() {
   const cancelCropBtn = document.getElementById("cancelProfileCrop");
   const applyCropBtn = document.getElementById("applyProfileCrop");
   const aboutKey = `profileAbout:${String(currentUser.id || "")}`;
-  const savedAbout = String(localStorage.getItem(aboutKey) || "").trim();
+  const legacyAbout = String(localStorage.getItem(aboutKey) || "").trim();
   const fallbackAbout =
     "Yazilim gelistirme sureclerine merakli, ogrenmeye acik ve ekip calismasina yatkin bir stajyerim. Modern web teknolojileri ve surdurulebilir kod mimarileri uzerine kendimi gelistirmeyi hedefliyorum.";
-  const displayAbout = savedAbout || fallbackAbout;
+  const displayAbout = String(currentUser.hakkimda || "").trim() || legacyAbout || fallbackAbout;
   const map = {
     profileFullName: getUserFullName(currentUser),
     profileTitle: getSidebarRoleText(currentUser),
@@ -1948,6 +2357,13 @@ function renderProfile() {
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
     }
   };
+
+  if (!String(currentUser.hakkimda || "").trim() && legacyAbout) {
+    currentUser.hakkimda = legacyAbout;
+    syncUserSave()
+      .then(() => localStorage.removeItem(aboutKey))
+      .catch(() => {});
+  }
 
   let cropState = {
     source: "",
@@ -2093,12 +2509,19 @@ function renderProfile() {
     }
   };
 
-  const saveAbout = () => {
+  const saveAbout = async () => {
     const value = String(aboutInput?.value || "").trim();
-    const toStore = value || displayAbout;
-    localStorage.setItem(aboutKey, toStore);
+    const toStore = value || fallbackAbout;
+    currentUser.hakkimda = toStore;
+    localStorage.setItem("currentUser", JSON.stringify(currentUser));
     if (aboutEl) aboutEl.textContent = toStore;
     setAboutMode(false);
+    try {
+      await syncUserSave();
+      localStorage.removeItem(aboutKey);
+    } catch (error) {
+      if (photoErrorEl) photoErrorEl.textContent = error?.message || "Hakkımda metni kaydedilemedi.";
+    }
   };
 
   if (nameEditBtn) nameEditBtn.onclick = async () => (nameEdit ? saveName() : setNameMode(true));
@@ -2247,14 +2670,17 @@ async function handleCreateTask(event) {
   event.preventDefault();
   taskModalError.textContent = "";
   syncTaskUsersHiddenInput();
-  const usersField = document.getElementById("taskUsers")?.value.trim() || "";
   const title = document.getElementById("taskTitle")?.value.trim() || "";
   const description = document.getElementById("taskDescription")?.value.trim() || "";
   const priority = document.getElementById("taskPriority")?.value || "Dusuk";
   const startMode = document.getElementById("taskStartMode")?.value || "accepted";
   const dueDate = document.getElementById("taskDueDate")?.value || "";
   const attachment = document.getElementById("taskAttachment")?.value?.trim() || "";
-  if (!taskSelectedAssigneeIds.size || !title || !description) {
+  const category = document.getElementById("taskCategory")?.value || "Genel";
+  const estimatedHoursRaw = document.getElementById("taskEstimatedHours")?.value;
+  const estimatedHours = estimatedHoursRaw ? Number(estimatedHoursRaw) : null;
+  const assigneeIdList = [...taskSelectedAssigneeIds];
+  if (!assigneeIdList.length || !title || !description) {
     taskModalError.textContent = "En az bir stajyer/.dev seçin; başlık ve açıklama zorunludur.";
     return;
   }
@@ -2263,22 +2689,34 @@ async function handleCreateTask(event) {
     taskModalError.textContent = "Geçmiş bir tarih seçilemez.";
     return;
   }
-  const request = {
-    id: String(Date.now()),
-    title,
-    description,
-    sender: getUserFullName(currentUser),
-    senderId: currentUser.id,
-    department: currentUser.departman || "-",
-    priority,
-    dueDate: dueDate || "",
-    startMode,
-    attachment,
-    assignees: usersField,
-    status: "Yanit Bekliyor",
-    createdAt: new Date().toISOString()
-  };
-  requests.unshift(request);
+  const baseId = String(Date.now());
+  const assignerName = getUserFullName(currentUser);
+  for (const assigneeId of assigneeIdList) {
+    const intern = users.find((u) => String(u.id) === String(assigneeId));
+    if (!intern) continue;
+    requests.unshift({
+      id: `${baseId}-${assigneeId}`,
+      requestKind: "assignment",
+      title,
+      description,
+      sender: assignerName,
+      senderId: String(currentUser.id),
+      assignerId: String(currentUser.id),
+      assignerName,
+      assigneeId: String(assigneeId),
+      assigneeName: getUserFullName(intern),
+      department: intern.departman || currentUser.departman || "-",
+      priority,
+      dueDate: dueDate || "",
+      startMode,
+      attachment,
+      category,
+      estimatedHours: estimatedHours && estimatedHours > 0 ? estimatedHours : null,
+      assignees: String(assigneeId),
+      status: "Yanit Bekliyor",
+      createdAt: new Date().toISOString()
+    });
+  }
   requests = sortRequestsQueuedFirst(requests);
   await window.api.saveRequests(requests);
   closeTaskModalFn();
@@ -2409,20 +2847,43 @@ function closeTaskModalFn() {
   resetTaskDatePicker();
 }
 
+function toggleAppTheme() {
+  const isLight = localStorage.getItem("appTheme") === "light";
+  localStorage.setItem("appTheme", isLight ? "dark" : "light");
+  applyThemeFromStorage();
+}
+
 function bindShellEvents() {
   navLinks.forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (btn.dataset.action === "open-task-create") {
-        if (!canAccessStaffFeatures()) return;
-        openTaskModal();
-        return;
-      }
       navLinks.forEach((item) => item.classList.remove("active"));
       btn.classList.add("active");
       localStorage.setItem(LAST_ACTIVE_VIEW_KEY, btn.dataset.view);
       await loadView(btn.dataset.view);
     });
   });
+
+  const sidebarNewTaskBtn = document.getElementById("sidebarNewTaskBtn");
+  if (sidebarNewTaskBtn) {
+    sidebarNewTaskBtn.addEventListener("click", () => {
+      if (canAccessStaffFeatures()) openTaskModal();
+    });
+  }
+
+  const sidebarSettingsBtn = document.getElementById("sidebarSettingsBtn");
+  if (sidebarSettingsBtn) {
+    sidebarSettingsBtn.addEventListener("click", async () => {
+      if (!canAccessStaffFeatures()) return;
+      navLinks.forEach((item) => item.classList.remove("active"));
+      localStorage.setItem(LAST_ACTIVE_VIEW_KEY, "erisim-ayarlari");
+      await loadView("erisim-ayarlari");
+    });
+  }
+
+  const sidebarThemeBtn = document.getElementById("sidebarThemeBtn");
+  const topbarThemeBtn = document.getElementById("topbarThemeBtn");
+  if (sidebarThemeBtn) sidebarThemeBtn.addEventListener("click", toggleAppTheme);
+  if (topbarThemeBtn) topbarThemeBtn.addEventListener("click", toggleAppTheme);
 
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   if (mobileMenuBtn) {
@@ -2545,9 +3006,19 @@ function bindShellEvents() {
   if (taskPostponeModal) {
     taskPostponeModal.addEventListener("click", (e) => e.target === taskPostponeModal && closeTaskPostponeModalFn());
   }
+
+  const taskEvalForm = document.getElementById("taskEvalForm");
+  const cancelTaskEval = document.getElementById("cancelTaskEval");
+  const taskEvalModal = document.getElementById("taskEvalModal");
+  if (taskEvalForm) taskEvalForm.addEventListener("submit", handleTaskEvalSubmit);
+  if (cancelTaskEval) cancelTaskEval.addEventListener("click", closeTaskEvalModalFn);
+  if (taskEvalModal) {
+    taskEvalModal.addEventListener("click", (e) => e.target === taskEvalModal && closeTaskEvalModalFn());
+  }
 }
 
 async function init() {
+  applyThemeFromStorage();
   if (!ensureSession()) return;
   await loadData();
   syncChatBridgeContext();
@@ -2596,11 +3067,21 @@ async function init() {
   const savedView = localStorage.getItem(LAST_ACTIVE_VIEW_KEY);
   let validView = navLinks.some((btn) => btn.dataset.view === savedView && !btn.classList.contains("nav-link-hidden"));
   let initialView = validView ? savedView : "gorevlerim";
-  if (isStajyerRole() && STAJYER_HIDDEN_VIEWS.has(initialView)) initialView = "gorevlerim";
+  if (isViewBlockedForUser(initialView)) initialView = "gorevlerim";
   navLinks.forEach((item) => item.classList.remove("active"));
   const initialBtn = navLinks.find((btn) => btn.dataset.view === initialView);
   if (initialBtn) initialBtn.classList.add("active");
   await loadView(initialView);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const postponeTaskId = urlParams.get("postpone");
+  if (postponeTaskId) {
+    const postponeTask = tasks.find((t) => String(t.taskId) === String(postponeTaskId));
+    if (postponeTask) {
+      window.history.replaceState({}, "", "./app.html");
+      openTaskPostponeModal(postponeTask);
+    }
+  }
 }
 
 init();

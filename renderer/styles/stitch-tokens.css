@@ -1,0 +1,71 @@
+/**
+ * Google Stitch — Stajyer Yönetim Sistemi UI
+ * Proje: 5492229529809928029 | Accent: #6C63FF
+ */
+:root {
+  --stitch-accent: #6c63ff;
+  --stitch-accent-rgb: 108, 99, 255;
+
+  --surface: #13121b;
+  --surface-dim: #13121b;
+  --surface-bright: #393842;
+  --surface-container-lowest: #0e0d16;
+  --surface-container-low: #1b1b24;
+  --surface-container: #1f1f28;
+  --surface-container-high: #2a2933;
+  --surface-container-highest: #35343e;
+  --on-surface: #e4e1ee;
+  --on-surface-variant: #c7c4d8;
+  --outline: #918fa1;
+  --outline-variant: #464555;
+
+  --primary-stitch: #c4c0ff;
+  --primary-container: #8781ff;
+  --on-primary-container: #1b0091;
+  --secondary-fixed: #82f9be;
+  --secondary-container: #20a471;
+  --tertiary: #ffb785;
+  --error-stitch: #ffb4ab;
+
+  --sidebar-width: 280px;
+  --topbar-height: 64px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --shadow-ambient: 0 12px 32px -4px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 0 0 1px rgba(var(--stitch-accent-rgb), 0.45), 0 0 20px rgba(var(--stitch-accent-rgb), 0.22);
+  --transition-fast: 0.2s ease;
+}
+
+html[data-theme="light"] {
+  --surface: #f4f5f8;
+  --surface-dim: #e8ebf3;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #eef0f6;
+  --surface-container: #ffffff;
+  --surface-container-high: #e8ebf3;
+  --surface-container-highest: #dde1ea;
+  --on-surface: #1a1d29;
+  --on-surface-variant: #5c6378;
+  --outline: #8a90a3;
+  --outline-variant: #d5d9e6;
+  --primary-stitch: #4f44e2;
+  --shadow-ambient: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(var(--stitch-accent-rgb), 0.12);
+}
+
+/* İkon fontu yüklenirken ligature metinleri görünmez */
+html.fonts-loading .material-symbols-outlined {
+  opacity: 0;
+}
+
+html.fonts-ready .material-symbols-outlined {
+  opacity: 1;
+  transition: opacity 0.12s ease;
+}

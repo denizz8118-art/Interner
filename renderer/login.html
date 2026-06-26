@@ -3,20 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Giriş Yap | IMS Portal</title>
+    <title>Giriş Yap | İnterner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles/material-symbols.css" />
+    <link rel="stylesheet" href="./styles/stitch-tokens.css" />
     <link rel="stylesheet" href="./app.css" />
+    <script src="./fonts-loader.js"></script>
   </head>
-  <body class="auth-body">
+  <body class="auth-body stitch-auth">
     <main class="login-stage">
-      <section class="auth-card login-clone-card">
-        <div class="login-logo-box">
-          <img
-            src="./assets/icons/account-icon.png"
-            alt="Account simgesi"
-          />
+      <section class="auth-card login-clone-card stitch-auth-card">
+        <div class="login-logo-box stitch-auth-logo">
+          <span class="material-symbols-outlined filled" style="font-size:56px;color:#fff">school</span>
         </div>
         <h1 class="auth-title login-brand">İnterner</h1>
         <p class="auth-subtitle login-sub">Merkezi Stajyer Yönetim ve Takip Sistemi</p>
@@ -27,8 +27,8 @@
         <form id="loginForm" class="auth-form">
           <label class="small" for="email">E-posta Adresi</label>
           <div class="input-row">
-            <span class="input-icon">✉</span>
-            <input id="email" class="input" type="email" placeholder="e@sirket.com" required />
+            <span class="input-icon material-symbols-outlined">mail</span>
+            <input id="email" class="input stitch-input" type="email" placeholder="e@sirket.com" required />
           </div>
 
           <div class="password-head">
@@ -36,13 +36,16 @@
             <a href="javascript:void(0)" class="forgot-link">Şifremi Unuttum?</a>
           </div>
           <div class="input-row">
-            <span class="input-icon">🔒</span>
-            <input id="password" class="input" type="password" placeholder="•••••••" required />
-            <button id="togglePassword" class="eye-btn" type="button">👁</button>
+            <span class="input-icon material-symbols-outlined">lock</span>
+            <input id="password" class="input stitch-input" type="password" placeholder="•••••••" required />
+            <button id="togglePassword" class="eye-btn material-symbols-outlined" type="button" aria-label="Şifreyi göster">visibility</button>
           </div>
 
           <label class="remember-line"><input type="checkbox" /> Beni hatırla</label>
-          <button class="btn-primary login-submit" type="submit">Giriş Yap →</button>
+          <button class="btn-primary login-submit stitch-auth-submit" type="submit">
+            Giriş Yap
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
           <p id="errorText" class="error-text"></p>
         </form>
 
@@ -50,7 +53,7 @@
       </section>
     </main>
     <footer class="auth-bottom-links">
-      <span>© 2024 Intern Management System. Tüm Hakları Saklıdır.</span>
+      <span>© 2026 Intern Management System. Tüm Hakları Saklıdır.</span>
       <div>
         <a href="javascript:void(0)">Gizlilik Politikası</a>
         <a href="javascript:void(0)">Kullanım Koşulları</a>

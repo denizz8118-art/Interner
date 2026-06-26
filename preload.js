@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld("api", {
   saveMessages: (messages) => ipcRenderer.invoke("messages:save", messages),
   listUserPhotos: () => ipcRenderer.invoke("userPhotos:list"),
   saveUserPhotos: (photos) => ipcRenderer.invoke("userPhotos:save", photos),
+  listPortfolios: () => ipcRenderer.invoke("portfolios:list"),
+  savePortfolios: (portfolios) => ipcRenderer.invoke("portfolios:save", portfolios),
   onMessagesUpdated: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("messages:updated", handler);

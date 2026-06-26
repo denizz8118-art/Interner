@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Görev Çalışma Alanı — İnterner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles/stitch-tokens.css" />
+    <link rel="stylesheet" href="./styles/material-symbols.css" />
+    <link rel="stylesheet" href="./styles/gorev-calisma.css" />
+    <script src="./fonts-loader.js"></script>
+  </head>
+  <body>
+    <div class="task-work-page">
+      <header class="task-work-topbar">
+        <button type="button" id="taskWorkBack" class="task-work-back">
+          <span class="material-symbols-outlined" style="font-size:20px">arrow_back</span>
+          Panele Dön
+        </button>
+        <div class="task-work-top-meta">
+          <h1 id="taskWorkTitle">Görev yükleniyor…</h1>
+          <p id="taskWorkSubtitle">—</p>
+        </div>
+        <div class="task-work-timer" id="taskWorkTimer">00:00:00</div>
+      </header>
+
+      <div class="task-work-body" id="taskWorkBody">
+        <aside class="task-work-side">
+          <section class="task-work-card">
+            <h2>Görev Özeti</h2>
+            <p id="taskWorkDesc" class="task-work-desc">—</p>
+            <div class="task-work-stat-row"><span>Öncelik</span><strong id="taskWorkPriority">—</strong></div>
+            <div class="task-work-stat-row"><span>Son tarih</span><strong id="taskWorkDue">—</strong></div>
+            <div class="task-work-stat-row"><span>Mentor</span><strong id="taskWorkMentor">—</strong></div>
+            <div class="task-work-stat-row"><span>Kategori</span><strong id="taskWorkCategory">—</strong></div>
+          </section>
+
+          <section class="task-work-card" style="margin-top:12px">
+            <h2>Adımlar</h2>
+            <ul id="taskWorkChecklist" class="task-work-checklist"></ul>
+          </section>
+        </aside>
+
+        <main class="task-work-main">
+          <section class="task-work-card">
+            <h2>Çalışma Notları</h2>
+            <textarea id="taskWorkNotes" class="task-work-notes" placeholder="Bugün ne yaptın, engeller, sonraki adım…"></textarea>
+            <p id="taskWorkSaveHint" class="task-work-save-hint"></p>
+          </section>
+
+          <section class="task-work-card task-work-complete-panel hidden" id="taskWorkCompletePanel">
+            <h2>Görevi Teslim Et</h2>
+            <div class="task-work-field">
+              <label>Çözüm bağlantısı</label>
+              <input id="taskWorkLink" class="input" type="url" placeholder="GitHub, Figma, doküman linki…" />
+            </div>
+            <div class="task-work-field">
+              <label>Stajyer notu</label>
+              <textarea id="taskWorkCompleteNote" rows="3" placeholder="Mentora iletilecek özet…"></textarea>
+            </div>
+            <div class="task-work-field">
+              <label>Dosya adları (virgülle)</label>
+              <input id="taskWorkFiles" class="input" type="text" placeholder="ornek.pdf, ekran.png" />
+            </div>
+            <p id="taskWorkError" class="task-work-error"></p>
+            <button type="button" id="taskWorkSubmitComplete" class="task-work-btn task-work-btn-primary">Mentora Gönder</button>
+          </section>
+        </main>
+
+        <aside class="task-work-side">
+          <section class="task-work-card">
+            <h2>İlerleme</h2>
+            <div class="task-work-progress-ring">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#2a2933" stroke-width="10"></circle>
+                <circle id="taskWorkProgressArc" cx="60" cy="60" r="52" fill="none" stroke="#8781ff" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+              </svg>
+              <div class="task-work-progress-label" id="taskWorkProgressPct">0%</div>
+            </div>
+            <div class="task-work-stat-row"><span>İş günü</span><strong id="taskWorkBusinessDays">0</strong></div>
+            <div class="task-work-stat-row"><span>Durum</span><strong id="taskWorkStatus">—</strong></div>
+            <div class="task-work-actions">
+              <button type="button" id="taskWorkBtnComplete" class="task-work-btn task-work-btn-primary">Görevi Bitir</button>
+              <button type="button" id="taskWorkBtnPause" class="task-work-btn task-work-btn-warn">Ara Ver</button>
+              <button type="button" id="taskWorkBtnPostpone" class="task-work-btn task-work-btn-ghost">Erteleme Talebi</button>
+            </div>
+          </section>
+
+          <section class="task-work-card" style="margin-top:12px">
+            <h2>Aktivite</h2>
+            <div id="taskWorkLog" class="task-work-log"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script src="./lib/taskWorkspace.js"></script>
+    <script src="./gorev-calisma.js"></script>
+  </body>
+</html>

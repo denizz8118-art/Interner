@@ -1,5 +1,52 @@
-﻿<section>
-  <h1 class="page-title">Panel</h1>
-  <p class="page-subtitle">Genel özet ekranı.</p>
-  <div class="card">Panel içeriği hazırlanıyor.</div>
+﻿<section class="panel-v2-shell">
+  <p class="stitch-page-lead panel-v2-lead">Stajyer ekibinizin görev, talep ve aktivite özetini tek ekranda takip edin.</p>
+
+  <div class="stitch-kpi-grid" id="panelKpiGrid">
+    <div class="stitch-surface-card stitch-kpi">
+      <span class="stitch-kpi-label">Aktif Görev</span>
+      <span class="stitch-kpi-value" id="panelKpiTasks">0</span>
+      <span class="stitch-kpi-trend" id="panelKpiTasksSub">Devam eden</span>
+    </div>
+    <div class="stitch-surface-card stitch-kpi">
+      <span class="stitch-kpi-label">Bekleyen Talep</span>
+      <span class="stitch-kpi-value" id="panelKpiRequests">0</span>
+      <span class="stitch-kpi-trend" id="panelKpiRequestsSub">Onay bekliyor</span>
+    </div>
+    <div class="stitch-surface-card stitch-kpi">
+      <span class="stitch-kpi-label">Stajyer</span>
+      <span class="stitch-kpi-value" id="panelKpiInterns">0</span>
+      <span class="stitch-kpi-trend">Kayıtlı</span>
+    </div>
+    <div class="stitch-surface-card stitch-kpi">
+      <span class="stitch-kpi-label">Tamamlanan</span>
+      <span class="stitch-kpi-value" id="panelKpiDone">0</span>
+      <span class="stitch-kpi-trend">Bu dönem</span>
+    </div>
+  </div>
+
+  <div class="panel-v2-quick" id="panelQuickActions">
+    <button type="button" class="panel-v2-quick-btn" data-goto="gorevlerim">
+      <span class="material-symbols-outlined">assignment</span> Görevler
+    </button>
+    <button type="button" class="panel-v2-quick-btn" data-goto="gelen-talepler">
+      <span class="material-symbols-outlined">inbox</span> Talepler
+    </button>
+    <button type="button" class="panel-v2-quick-btn" data-goto="mesajlar">
+      <span class="material-symbols-outlined">chat</span> Mesajlar
+    </button>
+    <button type="button" class="panel-v2-quick-btn nav-staff-only" data-goto="stajyerlerim">
+      <span class="material-symbols-outlined">groups</span> Stajyerler
+    </button>
+  </div>
+
+  <div class="panel-v2-split">
+    <section class="stitch-surface-card">
+      <h3 class="stitch-section-title">Son Aktiviteler</h3>
+      <div id="panelActivityList" class="stitch-activity-list"></div>
+    </section>
+    <section class="stitch-surface-card">
+      <h3 class="stitch-section-title">Görev Durumu</h3>
+      <div class="panel-v2-chart-placeholder" id="panelTaskBreakdown">Yükleniyor…</div>
+    </section>
+  </div>
 </section>
